@@ -1,0 +1,325 @@
+import { useState, useEffect } from 'react';
+import { Search, Users, Trophy, Plus, Trash2, AlertCircle } from 'lucide-react';
+
+export default function FantasyBasketball() {
+  const [teams, setTeams] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Load teams from memory on mount
+  useEffect(() => {
+    // Start with empty teams - users will create their own
+    setTeams([]);
+  }, []);
+
+  const fetchPlayer = async (name) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Call your serverless function that proxies to BallDontLie API
+      const response = await fetch(`/api/player?search=${encodeURIComponent(name)}`);
+      
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+      
+      const json = await response.json();
+      
+      if (json.data && json.data.length > 0) {
+        const player = json.data[0];
+        setLoading(false);
+        return {
+          id: player.id,
+          name: `${player.first_name} ${player.last_name}`,
+          position: player.position || 'N/A',
+          team_abbr: player.team?.abbreviation || 'FA'
+        };
+      }
+      
+      setLoading(false);
+      return null;
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to fetch player. Please try again.');
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setError('Please enter a player name');
+      return;
+    }
+
+    if (!selectedTeam) {
+      setError('Please select a team first');
+      return;
+    }
+
+    const player = await fetchPlayer(searchQuery);
+    
+    if (!player) {
+      setError(`Player "${searchQuery}" not found`);
+      return;
+    }
+
+    const team = teams.find(t => t.id === selectedTeam);
+    const existing = team.players.find(p => p.id === player.id);
+
+    if (existing) {
+      setError(`${player.name} is already on this team`);
+      return;
+    }
+
+    const updatedTeams = teams.map(t => {
+      if (t.id === selectedTeam) {
+        return {
+          ...t,
+          players: [...t.players, { 
+            ...player, 
+            points: 0, 
+            role: 'Bench',
+            addedDate: new Date().toISOString()
+          }]
+        };
+      }
+      return t;
+    });
+
+    setTeams(updatedTeams);
+    setSearchQuery('');
+    setError('');
+  };
+
+  const removePlayer = (teamId, playerId) => {
+    const updatedTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          players: t.players.filter(p => p.id !== playerId)
+        };
+      }
+      return t;
+    });
+    setTeams(updatedTeams);
+  };
+
+  const updatePlayerRole = (teamId, playerId, newRole) => {
+    const updatedTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          players: t.players.map(p => 
+            p.id === playerId ? { ...p, role: newRole } : p
+          )
+        };
+      }
+      return t;
+    });
+    setTeams(updatedTeams);
+  };
+
+  const createTeam = () => {
+    const teamName = prompt('Enter team name:');
+    if (!teamName || !teamName.trim()) return;
+
+    const newTeam = {
+      id: Date.now(),
+      name: teamName.trim(),
+      players: [],
+      createdDate: new Date().toISOString()
+    };
+    setTeams([...teams, newTeam]);
+    setSelectedTeam(newTeam.id);
+  };
+
+  const deleteTeam = (teamId) => {
+    if (!confirm('Are you sure you want to delete this team?')) return;
+    setTeams(teams.filter(t => t.id !== teamId));
+    if (selectedTeam === teamId) {
+      setSelectedTeam(null);
+    }
+  };
+
+  const getStarters = (players) => players.filter(p => p.role === 'Starter');
+  const getBench = (players) => players.filter(p => p.role === 'Bench');
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Trophy className="text-orange-600" size={32} />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball Tracker</h1>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="flex flex-col md:flex-row gap-2 mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search NBA player (e.g., LeBron James)..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+            <select
+              value={selectedTeam || ''}
+              onChange={(e) => setSelectedTeam(Number(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="">Select Team</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Search size={20} />
+              {loading ? 'Searching...' : 'Add Player'}
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+              <AlertCircle size={20} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            onClick={createTeam}
+            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+          >
+            <Plus size={20} />
+            Create New Team
+          </button>
+        </div>
+
+        {/* Teams Grid */}
+        {teams.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {teams.map(team => {
+              const starters = getStarters(team.players);
+              const bench = getBench(team.players);
+              
+              return (
+                <div key={team.id} className="bg-white rounded-lg shadow-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="text-orange-600" size={24} />
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
+                    </div>
+                    <button
+                      onClick={() => deleteTeam(team.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete team"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+
+                  {/* Starters Section */}
+                  {starters.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Starters</h3>
+                      <div className="space-y-2">
+                        {starters.map(player => (
+                          <PlayerCard 
+                            key={player.id} 
+                            player={player} 
+                            teamId={team.id}
+                            onRemove={removePlayer}
+                            onRoleChange={updatePlayerRole}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bench Section */}
+                  {bench.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Bench</h3>
+                      <div className="space-y-2">
+                        {bench.map(player => (
+                          <PlayerCard 
+                            key={player.id} 
+                            player={player} 
+                            teamId={team.id}
+                            onRemove={removePlayer}
+                            onRoleChange={updatePlayerRole}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {team.players.length === 0 && (
+                    <p className="text-gray-500 italic text-center py-8">No players yet. Search and add players above!</p>
+                  )}
+
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
+                    <span>Total Players: {team.players.length}</span>
+                    <span>Starters: {starters.length}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+            <Users className="mx-auto text-gray-400 mb-4" size={48} />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No teams yet</h3>
+            <p className="text-gray-600 mb-4">Create your first team to start building your fantasy roster!</p>
+            <button
+              onClick={createTeam}
+              className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 inline-flex items-center gap-2 transition-colors"
+            >
+              <Plus size={20} />
+              Create Team
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
+  return (
+    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+      <div className="flex-1">
+        <div className="font-semibold text-gray-800">{player.name}</div>
+        <div className="text-sm text-gray-600">
+          {player.position} | {player.team_abbr} | {player.points} pts
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <select
+          value={player.role}
+          onChange={(e) => onRoleChange(teamId, player.id, e.target.value)}
+          className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="Starter">Starter</option>
+          <option value="Bench">Bench</option>
+        </select>
+        <button
+          onClick={() => onRemove(teamId, player.id)}
+          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          title="Remove player"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
