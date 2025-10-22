@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Users, Trophy, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 export default function FantasyBasketball() {
@@ -7,19 +7,34 @@ export default function FantasyBasketball() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // Load teams from memory on mount
+  // Load teams from localStorage on mount
   useEffect(() => {
-    // Start with empty teams - users will create their own
-    setTeams([]);
+    const savedTeams = localStorage.getItem('fantasyTeams');
+    if (savedTeams) {
+      try {
+        setTeams(JSON.parse(savedTeams));
+      } catch (error) {
+        console.error('Error loading teams:', error);
+        setTeams([]);
+      }
+    }
   }, []);
+
+  // Save teams to localStorage whenever they change
+  useEffect(() => {
+    if (teams.length > 0) {
+      localStorage.setItem('fantasyTeams', JSON.stringify(teams));
+    }
+  }, [teams]);
 
   const fetchPlayer = async (name) => {
     setLoading(true);
     setError('');
     
     try {
-      // Call your serverless function that proxies to BallDontLie API
       const response = await fetch(`/api/player?search=${encodeURIComponent(name)}`);
       
       if (!response.ok) {
@@ -29,21 +44,27 @@ export default function FantasyBasketball() {
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
-        const player = json.data[0];
-        setLoading(false);
-        return {
+        const players = json.data.map(player => ({
           id: player.id,
           name: `${player.first_name} ${player.last_name}`,
           position: player.position || 'N/A',
           team_abbr: player.team?.abbreviation || 'FA'
-        };
+        }));
+        setSearchResults(players);
+        setShowDropdown(true);
+        setLoading(false);
+        return players;
       }
       
+      setSearchResults([]);
+      setShowDropdown(false);
       setLoading(false);
       return null;
     } catch (err) {
       console.error('Fetch error:', err);
       setError('Failed to fetch player. Please try again.');
+      setSearchResults([]);
+      setShowDropdown(false);
       setLoading(false);
       return null;
     }
@@ -60,18 +81,16 @@ export default function FantasyBasketball() {
       return;
     }
 
-    const player = await fetchPlayer(searchQuery);
-    
-    if (!player) {
-      setError(`Player "${searchQuery}" not found`);
-      return;
-    }
+    await fetchPlayer(searchQuery);
+  };
 
+  const addPlayerToTeam = (player) => {
     const team = teams.find(t => t.id === selectedTeam);
     const existing = team.players.find(p => p.id === player.id);
 
     if (existing) {
       setError(`${player.name} is already on this team`);
+      setShowDropdown(false);
       return;
     }
 
@@ -92,6 +111,8 @@ export default function FantasyBasketball() {
 
     setTeams(updatedTeams);
     setSearchQuery('');
+    setSearchResults([]);
+    setShowDropdown(false);
     setError('');
   };
 
@@ -159,33 +180,53 @@ export default function FantasyBasketball() {
           </div>
           
           {/* Search Bar */}
-          <div className="flex flex-col md:flex-row gap-2 mb-4">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search NBA player (e.g., LeBron James)..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            <select
-              value={selectedTeam || ''}
-              onChange={(e) => setSelectedTeam(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Select Team</option>
-              {teams.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors"
-            >
-              <Search size={20} />
-              {loading ? 'Searching...' : 'Add Player'}
-            </button>
+          <div className="relative">
+            <div className="flex flex-col md:flex-row gap-2 mb-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Search NBA player (e.g., LeBron James)..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <select
+                value={selectedTeam || ''}
+                onChange={(e) => setSelectedTeam(Number(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Select Team</option>
+                {teams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors"
+              >
+                <Search size={20} />
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+
+            {/* Dropdown Results */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute z-10 w-full md:w-2/3 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                {searchResults.map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => addPlayerToTeam(player)}
+                    className="w-full px-4 py-3 text-left hover:bg-orange-50 border-b border-gray-200 last:border-b-0 transition-colors"
+                  >
+                    <div className="font-semibold text-gray-800">{player.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {player.position} | {player.team_abbr}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {error && (
