@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Users, Trophy, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Users, Trophy, Plus, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function FantasyBasketball() {
   const [teams, setTeams] = useState([]);
@@ -128,7 +128,7 @@ export default function FantasyBasketball() {
 
   const fetchPlayerStats = async (playerId) => {
     try {
-      const response = await fetch(`/api/stats?player_id=${playerId}&season=2025`);
+      const response = await fetch(`/api/stats?player_id=${playerId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
@@ -307,28 +307,30 @@ export default function FantasyBasketball() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
               <AlertCircle size={20} />
               <span>{error}</span>
             </div>
           )}
 
-          <button
-            onClick={createTeam}
-            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
-          >
-            <Plus size={20} />
-            Create New Team
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={createTeam}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+            >
+              <Plus size={20} />
+              Create New Team
+            </button>
 
-          <button
-            onClick={updateAllStats}
-            disabled={updatingStats || teams.length === 0}
-            className="mt-2 ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors"
-          >
-            <RefreshCw size={20} className={updatingStats ? 'animate-spin' : ''} />
-            {updatingStats ? 'Updating Stats...' : 'Update All Stats'}
-          </button>
+            <button
+              onClick={updateAllStats}
+              disabled={updatingStats || teams.length === 0}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors"
+            >
+              <RefreshCw size={20} className={updatingStats ? 'animate-spin' : ''} />
+              {updatingStats ? 'Updating Stats...' : 'Update All Stats'}
+            </button>
+          </div>
         </div>
 
         {/* Teams Grid */}
@@ -432,7 +434,7 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
         <div className="text-sm text-gray-600">
           {player.position} | {player.team_abbr}
         </div>
-        {player.stats && (
+        {player.stats && player.stats.pts > 0 && (
           <div className="text-xs text-gray-500 mt-1">
             PTS: {player.stats.pts?.toFixed(1)} | REB: {player.stats.reb?.toFixed(1)} | AST: {player.stats.ast?.toFixed(1)} | 
             STL: {player.stats.stl?.toFixed(1)} | BLK: {player.stats.blk?.toFixed(1)} | TO: {player.stats.turnover?.toFixed(1)} | 
