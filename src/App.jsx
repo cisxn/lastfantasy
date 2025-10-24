@@ -9,6 +9,7 @@ export default function FantasyBasketball() {
   const [error, setError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [updatingStats, setUpdatingStats] = useState(false);
 
   // Load teams from localStorage on mount
   useEffect(() => {
@@ -100,7 +101,16 @@ export default function FantasyBasketball() {
           ...t,
           players: [...t.players, { 
             ...player, 
-            points: 0, 
+            stats: {
+              pts: 0,
+              reb: 0,
+              ast: 0,
+              stl: 0,
+              blk: 0,
+              turnover: 0,
+              fg3m: 0
+            },
+            fantasyPoints: 0,
             role: 'Bench',
             addedDate: new Date().toISOString()
           }]
@@ -114,6 +124,73 @@ export default function FantasyBasketball() {
     setSearchResults([]);
     setShowDropdown(false);
     setError('');
+  };
+
+  const fetchPlayerStats = async (playerId) => {
+    try {
+      const response = await fetch(`/api/stats?player_id=${playerId}&season=2025`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats');
+      }
+      const json = await response.json();
+      
+      if (json.data && json.data.length > 0) {
+        const stats = json.data[0];
+        return {
+          pts: stats.pts || 0,
+          reb: stats.reb || 0,
+          ast: stats.ast || 0,
+          stl: stats.stl || 0,
+          blk: stats.blk || 0,
+          turnover: stats.turnover || 0,
+          fg3m: stats.fg3m || 0
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      return null;
+    }
+  };
+
+  const calculateFantasyPoints = (stats) => {
+    if (!stats) return 0;
+    
+    // Fantasy point calculations
+    const blockPoints = (stats.blk || 0) * 2;
+    const stealPoints = (stats.stl || 0) * 2;
+    const reboundPoints = (stats.reb || 0) * 1;
+    const assistPoints = (stats.ast || 0) * 1;
+    const turnoverPoints = (stats.turnover || 0) * -1;
+    const pointsScored = (stats.pts || 0) * 1;
+    const threePtBonus = (stats.fg3m || 0) * 1;
+    
+    return blockPoints + stealPoints + reboundPoints + assistPoints + 
+           turnoverPoints + pointsScored + threePtBonus;
+  };
+
+  const updateAllStats = async () => {
+    setUpdatingStats(true);
+    setError('');
+    
+    const updatedTeams = await Promise.all(
+      teams.map(async (team) => {
+        const updatedPlayers = await Promise.all(
+          team.players.map(async (player) => {
+            const stats = await fetchPlayerStats(player.id);
+            if (stats) {
+              const fantasyPoints = calculateFantasyPoints(stats);
+              return { ...player, stats, fantasyPoints };
+            }
+            return player;
+          })
+        );
+        return { ...team, players: updatedPlayers };
+      })
+    );
+    
+    setTeams(updatedTeams);
+    setUpdatingStats(false);
   };
 
   const removePlayer = (teamId, playerId) => {
@@ -243,6 +320,15 @@ export default function FantasyBasketball() {
             <Plus size={20} />
             Create New Team
           </button>
+
+          <button
+            onClick={updateAllStats}
+            disabled={updatingStats || teams.length === 0}
+            className="mt-2 ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors"
+          >
+            <RefreshCw size={20} className={updatingStats ? 'animate-spin' : ''} />
+            {updatingStats ? 'Updating Stats...' : 'Update All Stats'}
+          </button>
         </div>
 
         {/* Teams Grid */}
@@ -311,6 +397,9 @@ export default function FantasyBasketball() {
                   <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
                     <span>Total Players: {team.players.length}</span>
                     <span>Starters: {starters.length}</span>
+                    <span className="font-bold text-orange-600">
+                      Total FP: {team.players.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
+                    </span>
                   </div>
                 </div>
               );
@@ -341,7 +430,17 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
       <div className="flex-1">
         <div className="font-semibold text-gray-800">{player.name}</div>
         <div className="text-sm text-gray-600">
-          {player.position} | {player.team_abbr} | {player.points} pts
+          {player.position} | {player.team_abbr}
+        </div>
+        {player.stats && (
+          <div className="text-xs text-gray-500 mt-1">
+            PTS: {player.stats.pts?.toFixed(1)} | REB: {player.stats.reb?.toFixed(1)} | AST: {player.stats.ast?.toFixed(1)} | 
+            STL: {player.stats.stl?.toFixed(1)} | BLK: {player.stats.blk?.toFixed(1)} | TO: {player.stats.turnover?.toFixed(1)} | 
+            3PM: {player.stats.fg3m?.toFixed(1)}
+          </div>
+        )}
+        <div className="text-sm font-bold text-orange-600 mt-1">
+          Fantasy Points: {player.fantasyPoints?.toFixed(1) || '0.0'}
         </div>
       </div>
       <div className="flex items-center gap-2">
