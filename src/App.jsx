@@ -45,7 +45,12 @@ export default function FantasyBasketball() {
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
-        const players = json.data.map(player => ({
+        // Filter for only active players (players with a current team)
+        const activePlayers = json.data.filter(player => 
+          player.team && player.team.id && player.team.abbreviation
+        );
+        
+        const players = activePlayers.map(player => ({
           id: player.id,
           name: `${player.first_name} ${player.last_name}`,
           position: player.position || 'N/A',
