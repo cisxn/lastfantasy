@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     
     console.log(`Fetching stats for player ${player_id}, season ${season}`);
     
-    const url = `https://api.balldontlie.io/v1/season_averages?season=${season}&player_ids%5B%5D=${player_id}`;
+    const url = `https://api.balldontlie.io/v1/season_averages?season=${season}&player_id=${player_id}`;
     console.log(`Request URL: ${url}`);
     
     const response = await fetch(url, {
