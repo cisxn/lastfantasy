@@ -10,6 +10,23 @@ export default function FantasyBasketball() {
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [updatingStats, setUpdatingStats] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(3); // Default to Week 3
+
+  // Week 1 started on 10/20/2025
+  const SEASON_START = new Date('2025-10-20');
+  
+  const getWeekDates = (weekNumber) => {
+    const startDate = new Date(SEASON_START);
+    startDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6); // Monday to Sunday
+    
+    return {
+      start: startDate.toISOString().split('T')[0],
+      end: endDate.toISOString().split('T')[0]
+    };
+  };
 
   // Load teams from localStorage on mount
   useEffect(() => {
@@ -133,22 +150,38 @@ export default function FantasyBasketball() {
 
   const fetchPlayerStats = async (playerId) => {
     try {
-      const response = await fetch(`/api/stats?player_id=${playerId}`);
+      const weekDates = getWeekDates(selectedWeek);
+      const response = await fetch(
+        `/api/games?player_id=${playerId}&start_date=${weekDates.start}&end_date=${weekDates.end}`
+      );
+      
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
+      
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
-        const stats = json.data[0];
+        // Sort games by date to get the first game of the week
+        const sortedGames = json.data.sort((a, b) => 
+          new Date(a.game.date) - new Date(b.game.date)
+        );
+        
+        const firstGame = sortedGames[0];
+        const gameDate = new Date(firstGame.game.date).toLocaleDateString();
+        const opponent = firstGame.game.home_team.id === firstGame.team.id 
+          ? `vs ${firstGame.game.visitor_team.abbreviation}`
+          : `@ ${firstGame.game.home_team.abbreviation}`;
+        
         return {
-          pts: stats.pts || 0,
-          reb: stats.reb || 0,
-          ast: stats.ast || 0,
-          stl: stats.stl || 0,
-          blk: stats.blk || 0,
-          turnover: stats.turnover || 0,
-          fg3m: stats.fg3m || 0
+          pts: firstGame.pts || 0,
+          reb: firstGame.reb || 0,
+          ast: firstGame.ast || 0,
+          stl: firstGame.stl || 0,
+          blk: firstGame.blk || 0,
+          turnover: firstGame.turnover || 0,
+          fg3m: firstGame.fg3m || 0,
+          gameInfo: `${opponent} on ${gameDate}`
         };
       }
       return null;
@@ -327,6 +360,16 @@ export default function FantasyBasketball() {
               Create New Team
             </button>
 
+            <select
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(Number(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(week => (
+                <option key={week} value={week}>Week {week}</option>
+              ))}
+            </select>
+
             <button
               onClick={updateAllStats}
               disabled={updatingStats || teams.length === 0}
@@ -405,7 +448,7 @@ export default function FantasyBasketball() {
                     <span>Total Players: {team.players.length}</span>
                     <span>Starters: {starters.length}</span>
                     <span className="font-bold text-orange-600">
-                      Total FP: {team.players.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
+                      Total FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -440,11 +483,18 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
           {player.position} | {player.team_abbr}
         </div>
         {player.stats && player.stats.pts > 0 && (
-          <div className="text-xs text-gray-500 mt-1">
-            PTS: {player.stats.pts?.toFixed(1)} | REB: {player.stats.reb?.toFixed(1)} | AST: {player.stats.ast?.toFixed(1)} | 
-            STL: {player.stats.stl?.toFixed(1)} | BLK: {player.stats.blk?.toFixed(1)} | TO: {player.stats.turnover?.toFixed(1)} | 
-            3PM: {player.stats.fg3m?.toFixed(1)}
-          </div>
+          <>
+            <div className="text-xs text-gray-500 mt-1">
+              PTS: {player.stats.pts?.toFixed(1)} | REB: {player.stats.reb?.toFixed(1)} | AST: {player.stats.ast?.toFixed(1)} | 
+              STL: {player.stats.stl?.toFixed(1)} | BLK: {player.stats.blk?.toFixed(1)} | TO: {player.stats.turnover?.toFixed(1)} | 
+              3PM: {player.stats.fg3m?.toFixed(1)}
+            </div>
+            {player.stats.gameInfo && (
+              <div className="text-xs text-blue-600 mt-1 font-medium">
+                {player.stats.gameInfo}
+              </div>
+            )}
+          </>
         )}
         <div className="text-sm font-bold text-orange-600 mt-1">
           Fantasy Points: {player.fantasyPoints?.toFixed(1) || '0.0'}
