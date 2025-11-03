@@ -11,6 +11,8 @@ export default function FantasyBasketball() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [updatingStats, setUpdatingStats] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(3); // Default to Week 3
+  const [viewMode, setViewMode] = useState('all'); // 'all' or 'single'
+  const [viewingTeamId, setViewingTeamId] = useState(null);
 
   // Week 1 started on 10/20/2025
   const SEASON_START = new Date('2025-10-20');
@@ -288,10 +290,40 @@ export default function FantasyBasketball() {
     if (selectedTeam === teamId) {
       setSelectedTeam(null);
     }
+    if (viewingTeamId === teamId) {
+      setViewMode('all');
+      setViewingTeamId(null);
+    }
+  };
+
+  const editTeamName = (teamId) => {
+    const team = teams.find(t => t.id === teamId);
+    const newName = prompt('Enter new team name:', team.name);
+    if (!newName || !newName.trim()) return;
+
+    const updatedTeams = teams.map(t => 
+      t.id === teamId ? { ...t, name: newName.trim() } : t
+    );
+    setTeams(updatedTeams);
+  };
+
+  const viewTeam = (teamId) => {
+    setViewingTeamId(teamId);
+    setViewMode('single');
+  };
+
+  const backToAllTeams = () => {
+    setViewMode('all');
+    setViewingTeamId(null);
   };
 
   const getStarters = (players) => players.filter(p => p.role === 'Starter');
   const getBench = (players) => players.filter(p => p.role === 'Bench');
+
+  // Get the team being viewed or all teams
+  const displayTeams = viewMode === 'single' 
+    ? teams.filter(t => t.id === viewingTeamId)
+    : teams;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4 md:p-6">
@@ -392,25 +424,53 @@ export default function FantasyBasketball() {
 
         {/* Teams Grid */}
         {teams.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {teams.map(team => {
+          <>
+            {viewMode === 'single' && (
+              <button
+                onClick={backToAllTeams}
+                className="mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition-colors"
+              >
+                ← Back to All Teams
+              </button>
+            )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {displayTeams.map(team => {
               const starters = getStarters(team.players);
               const bench = getBench(team.players);
               
               return (
                 <div key={team.id} className="bg-white rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                       <Users className="text-orange-600" size={24} />
                       <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
                     </div>
-                    <button
-                      onClick={() => deleteTeam(team.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete team"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {viewMode === 'all' && (
+                        <button
+                          onClick={() => viewTeam(team.id)}
+                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          title="View team details"
+                        >
+                          View
+                        </button>
+                      )}
+                      <button
+                        onClick={() => editTeamName(team.id)}
+                        className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                        title="Edit team name"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteTeam(team.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete team"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Starters Section */}
@@ -464,6 +524,7 @@ export default function FantasyBasketball() {
               );
             })}
           </div>
+        </>
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">
             <Users className="mx-auto text-gray-400 mb-4" size={48} />
