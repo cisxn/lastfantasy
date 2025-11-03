@@ -16,8 +16,9 @@ export default async function handler(req, res) {
 
   try {
     // Call BallDontLie API with your key from environment variables
+    // Add per_page parameter to get more results
     const response = await fetch(
-      `https://api.balldontlie.io/v1/players?search=${encodeURIComponent(search)}`,
+      `https://api.balldontlie.io/v1/players?search=${encodeURIComponent(search)}&per_page=50`,
       {
         headers: {
           'Authorization': process.env.BALLDONTLIE_API_KEY
