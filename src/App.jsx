@@ -169,9 +169,18 @@ export default function FantasyBasketball() {
         
         const firstGame = sortedGames[0];
         const gameDate = new Date(firstGame.game.date).toLocaleDateString();
-        const opponent = firstGame.game.home_team.id === firstGame.team.id 
-          ? `vs ${firstGame.game.visitor_team.abbreviation}`
-          : `@ ${firstGame.game.home_team.abbreviation}`;
+        
+        // Determine opponent
+        let opponent = 'Unknown';
+        if (firstGame.game.home_team_id === firstGame.team.id) {
+          // Home game - find visitor team abbreviation
+          opponent = `vs ${firstGame.game.visitor_team_id === firstGame.team.id ? 'Unknown' : 'OPP'}`;
+          // We need to look up the team abbreviation or use a simpler format
+          opponent = `Home Game`;
+        } else {
+          // Away game
+          opponent = `Away Game`;
+        }
         
         return {
           pts: firstGame.pts || 0,
