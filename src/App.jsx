@@ -10,12 +10,11 @@ export default function FantasyBasketball() {
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [updatingStats, setUpdatingStats] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(3); // Default to Week 3
-  const [viewMode, setViewMode] = useState('all'); // 'all' or 'single'
+  const [selectedWeek, setSelectedWeek] = useState(3);
+  const [viewMode, setViewMode] = useState('all');
   const [viewingTeamId, setViewingTeamId] = useState(null);
-  const [currentPage, setCurrentPage] = useState('teams'); // 'teams' or 'standings'
+  const [currentPage, setCurrentPage] = useState('teams');
 
-  // Week 1 started on 10/20/2025
   const SEASON_START = new Date('2025-10-20');
   
   const getWeekDates = (weekNumber) => {
@@ -23,7 +22,7 @@ export default function FantasyBasketball() {
     startDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
     
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6); // Monday to Sunday
+    endDate.setDate(endDate.getDate() + 6);
     
     return {
       start: startDate.toISOString().split('T')[0],
@@ -31,7 +30,6 @@ export default function FantasyBasketball() {
     };
   };
 
-  // Load teams from localStorage on mount
   useEffect(() => {
     const savedTeams = localStorage.getItem('fantasyTeams');
     if (savedTeams) {
@@ -44,7 +42,6 @@ export default function FantasyBasketball() {
     }
   }, []);
 
-  // Save teams to localStorage whenever they change
   useEffect(() => {
     if (teams.length > 0) {
       localStorage.setItem('fantasyTeams', JSON.stringify(teams));
@@ -65,7 +62,6 @@ export default function FantasyBasketball() {
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
-        // Filter for only active players (players with a current team)
         const activePlayers = json.data.filter(player => 
           player.team && player.team.id && player.team.abbreviation
         );
@@ -165,7 +161,6 @@ export default function FantasyBasketball() {
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
-        // Filter games to only include those within the selected week
         const weekDates = getWeekDates(selectedWeek);
         const weekStart = new Date(weekDates.start);
         const weekEnd = new Date(weekDates.end);
@@ -175,19 +170,16 @@ export default function FantasyBasketball() {
           return gameDate >= weekStart && gameDate <= weekEnd;
         });
         
-        // If no games in this week, return null (no stats to show)
         if (gamesInWeek.length === 0) {
           return null;
         }
         
-        // Sort games by date to get the first game of the week
         const sortedGames = gamesInWeek.sort((a, b) => 
           new Date(a.game.date) - new Date(b.game.date)
         );
         
         const firstGame = sortedGames[0];
         
-        // Format date in Eastern Time
         const gameDateStr = firstGame.game.date;
         const [year, month, day] = gameDateStr.split('-');
         const gameDate = new Date(year, month - 1, day);
@@ -198,15 +190,10 @@ export default function FantasyBasketball() {
           timeZone: 'America/New_York'
         });
         
-        // Determine opponent
         let opponent = 'Unknown';
         if (firstGame.game.home_team_id === firstGame.team.id) {
-          // Home game - find visitor team abbreviation
-          opponent = `vs ${firstGame.game.visitor_team_id === firstGame.team.id ? 'Unknown' : 'OPP'}`;
-          // We need to look up the team abbreviation or use a simpler format
           opponent = `Home Game`;
         } else {
-          // Away game
           opponent = `Away Game`;
         }
         
@@ -231,7 +218,6 @@ export default function FantasyBasketball() {
   const calculateFantasyPoints = (stats) => {
     if (!stats) return 0;
     
-    // Fantasy point calculations
     const blockPoints = (stats.blk || 0) * 2;
     const stealPoints = (stats.stl || 0) * 2;
     const reboundPoints = (stats.reb || 0) * 1;
@@ -257,7 +243,6 @@ export default function FantasyBasketball() {
               const fantasyPoints = calculateFantasyPoints(stats);
               return { ...player, stats, fantasyPoints };
             }
-            // If no stats found for this week, reset to 0
             return { 
               ...player, 
               stats: {
@@ -359,117 +344,109 @@ export default function FantasyBasketball() {
   const getStarters = (players) => players.filter(p => p.role === 'Starter');
   const getBench = (players) => players.filter(p => p.role === 'Bench');
 
-  // Get the team being viewed or all teams
   const displayTeams = viewMode === 'single' 
     ? teams.filter(t => t.id === viewingTeamId)
     : teams;
 
-  // Calculate standings
-  const getTeamWeeklyScore = (team, week) => {
-    const starters = team.players.filter(p => p.role === 'Starter');
-    return starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
-  };
-
   const standings = teams.map(team => {
-    const weekScore = getTeamWeeklyScore(team, selectedWeek);
-    const starterCount = team.players.filter(p => p.role === 'Starter').length;
+    const starters = team.players.filter(p => p.role === 'Starter');
+    const weekScore = starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
     return {
       id: team.id,
       name: team.name,
       weekScore: weekScore,
       totalPlayers: team.players.length,
-      starters: starterCount
+      starters: starters.length
     };
   }).sort((a, b) => b.weekScore - a.weekScore);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Navigation */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Trophy className="text-orange-600" size={32} />
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball Tracker</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball</h1>
             </div>
             
-            {/* Navigation Tabs */}
             <div className="flex gap-2">
               <button
                 onClick={() => { setCurrentPage('teams'); setViewMode('all'); }}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
                   currentPage === 'teams' 
                     ? 'bg-orange-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                <Users size={20} className="inline mr-2" />
+                <Users size={20} />
                 Teams
               </button>
               <button
                 onClick={() => setCurrentPage('standings')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
                   currentPage === 'standings' 
                     ? 'bg-orange-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                <BarChart3 size={20} className="inline mr-2" />
+                <BarChart3 size={20} />
                 Standings
               </button>
             </div>
           </div>
-          
-          {/* Search Bar - Only show on Teams page */}
-          {currentPage === 'teams' && (
-            <div className="relative">
-              <div className="flex flex-col md:flex-row gap-2 mb-4">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search NBA player (e.g., LeBron James)..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <select
-                value={selectedTeam || ''}
-                onChange={(e) => setSelectedTeam(Number(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="">Select Team</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleSearch}
-                disabled={loading}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors"
-              >
-                <Search size={20} />
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
 
-            {/* Dropdown Results */}
-            {showDropdown && searchResults.length > 0 && (
-              <div className="absolute z-10 w-full md:w-2/3 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto">
-                {searchResults.map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => addPlayerToTeam(player)}
-                    className="w-full px-4 py-3 text-left hover:bg-orange-50 border-b border-gray-200 last:border-b-0 transition-colors"
+          {currentPage === 'teams' && (
+            <>
+              <div className="relative mb-4">
+                <div className="flex flex-col md:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Search NBA player..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <select
+                    value={selectedTeam || ''}
+                    onChange={(e) => setSelectedTeam(Number(e.target.value))}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <div className="font-semibold text-gray-800">{player.name}</div>
-                    <div className="text-sm text-gray-600">
-                      {player.position} | {player.team_abbr}
-                    </div>
+                    <option value="">Select Team</option>
+                    {teams.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Search size={20} />
+                    {loading ? 'Searching...' : 'Search'}
                   </button>
-                ))}
+                </div>
+
+                {showDropdown && searchResults.length > 0 && (
+                  <div className="absolute z-10 w-full md:w-2/3 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto mt-2">
+                    {searchResults.map((player) => (
+                      <button
+                        key={player.id}
+                        onClick={() => addPlayerToTeam(player)}
+                        className="w-full px-4 py-3 text-left hover:bg-orange-50 border-b border-gray-200 last:border-b-0 transition-colors"
+                      >
+                        <div className="font-semibold text-gray-800">{player.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {player.position} | {player.team_abbr}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
@@ -479,13 +456,15 @@ export default function FantasyBasketball() {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={createTeam}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
-            >
-              <Plus size={20} />
-              Create New Team
-            </button>
+            {currentPage === 'teams' && (
+              <button
+                onClick={createTeam}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
+              >
+                <Plus size={20} />
+                Create Team
+              </button>
+            )}
 
             <select
               value={selectedWeek}
@@ -503,126 +482,188 @@ export default function FantasyBasketball() {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors"
             >
               <RefreshCw size={20} className={updatingStats ? 'animate-spin' : ''} />
-              {updatingStats ? 'Updating Stats...' : 'Update All Stats'}
+              {updatingStats ? 'Updating...' : 'Update Stats'}
             </button>
           </div>
         </div>
 
-        {/* Teams Grid */}
-        {teams.length > 0 ? (
+        {currentPage === 'teams' && (
           <>
-            {viewMode === 'single' && (
-              <button
-                onClick={backToAllTeams}
-                className="mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition-colors"
-              >
-                ← Back to All Teams
-              </button>
-            )}
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {displayTeams.map(team => {
-              const starters = getStarters(team.players);
-              const bench = getBench(team.players);
-              
-              return (
-                <div key={team.id} className="bg-white rounded-lg shadow-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 flex-1">
-                      <Users className="text-orange-600" size={24} />
-                      <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {viewMode === 'all' && (
-                        <button
-                          onClick={() => viewTeam(team.id)}
-                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          title="View team details"
-                        >
-                          View
-                        </button>
-                      )}
-                      <button
-                        onClick={() => editTeamName(team.id)}
-                        className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-                        title="Edit team name"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteTeam(team.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete team"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </div>
-                  </div>
+            {teams.length > 0 ? (
+              <>
+                {viewMode === 'single' && (
+                  <button
+                    onClick={backToAllTeams}
+                    className="mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    ← Back to All Teams
+                  </button>
+                )}
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {displayTeams.map(team => {
+                    const starters = getStarters(team.players);
+                    const bench = getBench(team.players);
+                    
+                    return (
+                      <div key={team.id} className="bg-white rounded-lg shadow-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Users className="text-orange-600" size={24} />
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {viewMode === 'all' && (
+                              <button
+                                onClick={() => viewTeam(team.id)}
+                                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                View
+                              </button>
+                            )}
+                            <button
+                              onClick={() => editTeamName(team.id)}
+                              className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteTeam(team.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                          </div>
+                        </div>
 
-                  {/* Starters Section */}
-                  {starters.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Starters</h3>
-                      <div className="space-y-2">
-                        {starters.map(player => (
-                          <PlayerCard 
-                            key={player.id} 
-                            player={player} 
-                            teamId={team.id}
-                            onRemove={removePlayer}
-                            onRoleChange={updatePlayerRole}
-                          />
-                        ))}
+                        {starters.length > 0 && (
+                          <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starters</h3>
+                            <div className="space-y-2">
+                              {starters.map(player => (
+                                <PlayerCard 
+                                  key={player.id} 
+                                  player={player} 
+                                  teamId={team.id}
+                                  onRemove={removePlayer}
+                                  onRoleChange={updatePlayerRole}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {bench.length > 0 && (
+                          <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Bench</h3>
+                            <div className="space-y-2">
+                              {bench.map(player => (
+                                <PlayerCard 
+                                  key={player.id} 
+                                  player={player} 
+                                  teamId={team.id}
+                                  onRemove={removePlayer}
+                                  onRoleChange={updatePlayerRole}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {team.players.length === 0 && (
+                          <p className="text-gray-500 italic text-center py-8">No players yet</p>
+                        )}
+
+                        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
+                          <span>Players: {team.players.length}</span>
+                          <span>Starters: {starters.length}</span>
+                          <span className="font-bold text-orange-600">
+                            FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Bench Section */}
-                  {bench.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Bench</h3>
-                      <div className="space-y-2">
-                        {bench.map(player => (
-                          <PlayerCard 
-                            key={player.id} 
-                            player={player} 
-                            teamId={team.id}
-                            onRemove={removePlayer}
-                            onRoleChange={updatePlayerRole}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {team.players.length === 0 && (
-                    <p className="text-gray-500 italic text-center py-8">No players yet. Search and add players above!</p>
-                  )}
-
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
-                    <span>Total Players: {team.players.length}</span>
-                    <span>Starters: {starters.length}</span>
-                    <span className="font-bold text-orange-600">
-                      Total FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
-                    </span>
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </>
-        ) : (
-          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-            <Users className="mx-auto text-gray-400 mb-4" size={48} />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No teams yet</h3>
-            <p className="text-gray-600 mb-4">Create your first team to start building your fantasy roster!</p>
-            <button
-              onClick={createTeam}
-              className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 inline-flex items-center gap-2 transition-colors"
-            >
-              <Plus size={20} />
-              Create Team
-            </button>
+              </>
+            ) : (
+              <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+                <Users className="mx-auto text-gray-400 mb-4" size={48} />
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">No teams yet</h3>
+                <p className="text-gray-600 mb-4">Create your first team!</p>
+                <button
+                  onClick={createTeam}
+                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 inline-flex items-center gap-2"
+                >
+                  <Plus size={20} />
+                  Create Team
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {currentPage === 'standings' && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Standings - Week {selectedWeek}</h2>
+            
+            {teams.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-300">
+                      <th className="text-left py-3 px-4">Rank</th>
+                      <th className="text-left py-3 px-4">Team</th>
+                      <th className="text-center py-3 px-4">Starters</th>
+                      <th className="text-center py-3 px-4">Players</th>
+                      <th className="text-right py-3 px-4">Fantasy Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {standings.map((team, index) => (
+                      <tr key={team.id} className="border-b hover:bg-gray-50">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Trophy className="text-yellow-500" size={20} />}
+                            {index === 1 && <Trophy className="text-gray-400" size={20} />}
+                            {index === 2 && <Trophy className="text-orange-600" size={20} />}
+                            <span className="font-semibold text-lg">{index + 1}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <button
+                            onClick={() => {
+                              setCurrentPage('teams');
+                              viewTeam(team.id);
+                            }}
+                            className="text-blue-600 hover:underline font-semibold"
+                          >
+                            {team.name}
+                          </button>
+                        </td>
+                        <td className="py-4 px-4 text-center">{team.starters}/6</td>
+                        <td className="py-4 px-4 text-center">{team.totalPlayers}</td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="text-lg font-bold text-orange-600">
+                            {team.weekScore.toFixed(1)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">No teams yet!</p>
+                <button
+                  onClick={() => setCurrentPage('teams')}
+                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  Go to Teams
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -632,12 +673,10 @@ export default function FantasyBasketball() {
 
 function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
       <div className="flex-1">
         <div className="font-semibold text-gray-800">{player.name}</div>
-        <div className="text-sm text-gray-600">
-          {player.position} | {player.team_abbr}
-        </div>
+        <div className="text-sm text-gray-600">{player.position} | {player.team_abbr}</div>
         {player.stats && player.stats.pts > 0 && (
           <>
             <div className="text-xs text-gray-500 mt-1">
@@ -653,22 +692,21 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
           </>
         )}
         <div className="text-sm font-bold text-orange-600 mt-1">
-          Fantasy Points: {player.fantasyPoints?.toFixed(1) || '0.0'}
+          FP: {player.fantasyPoints?.toFixed(1) || '0.0'}
         </div>
       </div>
       <div className="flex items-center gap-2">
         <select
           value={player.role}
           onChange={(e) => onRoleChange(teamId, player.id, e.target.value)}
-          className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+          className="text-sm px-2 py-1 border rounded focus:ring-2 focus:ring-orange-500"
         >
           <option value="Starter">Starter</option>
           <option value="Bench">Bench</option>
         </select>
         <button
           onClick={() => onRemove(teamId, player.id)}
-          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          title="Remove player"
+          className="p-2 text-red-600 hover:bg-red-50 rounded"
         >
           <Trash2 size={18} />
         </button>
