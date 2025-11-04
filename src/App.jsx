@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Trophy, Plus, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Search, Users, Trophy, Plus, Trash2, AlertCircle, RefreshCw, BarChart3 } from 'lucide-react';
 
 export default function FantasyBasketball() {
   const [teams, setTeams] = useState([]);
@@ -13,6 +13,7 @@ export default function FantasyBasketball() {
   const [selectedWeek, setSelectedWeek] = useState(3); // Default to Week 3
   const [viewMode, setViewMode] = useState('all'); // 'all' or 'single'
   const [viewingTeamId, setViewingTeamId] = useState(null);
+  const [currentPage, setCurrentPage] = useState('teams'); // 'teams' or 'standings'
 
   // Week 1 started on 10/20/2025
   const SEASON_START = new Date('2025-10-20');
@@ -363,19 +364,66 @@ export default function FantasyBasketball() {
     ? teams.filter(t => t.id === viewingTeamId)
     : teams;
 
+  // Calculate standings
+  const getTeamWeeklyScore = (team, week) => {
+    const starters = team.players.filter(p => p.role === 'Starter');
+    return starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
+  };
+
+  const standings = teams.map(team => {
+    const weekScore = getTeamWeeklyScore(team, selectedWeek);
+    const starterCount = team.players.filter(p => p.role === 'Starter').length;
+    return {
+      id: team.id,
+      name: team.name,
+      weekScore: weekScore,
+      totalPlayers: team.players.length,
+      starters: starterCount
+    };
+  }).sort((a, b) => b.weekScore - a.weekScore);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header with Navigation */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Trophy className="text-orange-600" size={32} />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball Tracker</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Trophy className="text-orange-600" size={32} />
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball Tracker</h1>
+            </div>
+            
+            {/* Navigation Tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setCurrentPage('teams'); setViewMode('all'); }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  currentPage === 'teams' 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Users size={20} className="inline mr-2" />
+                Teams
+              </button>
+              <button
+                onClick={() => setCurrentPage('standings')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  currentPage === 'standings' 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <BarChart3 size={20} className="inline mr-2" />
+                Standings
+              </button>
+            </div>
           </div>
           
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="flex flex-col md:flex-row gap-2 mb-4">
+          {/* Search Bar - Only show on Teams page */}
+          {currentPage === 'teams' && (
+            <div className="relative">
+              <div className="flex flex-col md:flex-row gap-2 mb-4">
               <input
                 type="text"
                 value={searchQuery}
