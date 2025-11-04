@@ -164,21 +164,37 @@ export default function FantasyBasketball() {
       const json = await response.json();
       
       if (json.data && json.data.length > 0) {
+        // Filter games to only include those within the selected week
+        const weekDates = getWeekDates(selectedWeek);
+        const weekStart = new Date(weekDates.start);
+        const weekEnd = new Date(weekDates.end);
+        
+        const gamesInWeek = json.data.filter(game => {
+          const gameDate = new Date(game.game.date);
+          return gameDate >= weekStart && gameDate <= weekEnd;
+        });
+        
+        // If no games in this week, return null (no stats to show)
+        if (gamesInWeek.length === 0) {
+          return null;
+        }
+        
         // Sort games by date to get the first game of the week
-        const sortedGames = json.data.sort((a, b) => 
+        const sortedGames = gamesInWeek.sort((a, b) => 
           new Date(a.game.date) - new Date(b.game.date)
         );
         
         const firstGame = sortedGames[0];
         
-        // Fix timezone issue - parse date correctly
+        // Format date in Eastern Time
         const gameDateStr = firstGame.game.date;
         const [year, month, day] = gameDateStr.split('-');
         const gameDate = new Date(year, month - 1, day);
         const formattedDate = gameDate.toLocaleDateString('en-US', { 
           month: 'numeric', 
           day: 'numeric', 
-          year: 'numeric' 
+          year: 'numeric',
+          timeZone: 'America/New_York'
         });
         
         // Determine opponent
@@ -201,7 +217,7 @@ export default function FantasyBasketball() {
           blk: firstGame.blk || 0,
           turnover: firstGame.turnover || 0,
           fg3m: firstGame.fg3m || 0,
-          gameInfo: `${opponent} on ${gameDate}`
+          gameInfo: `${opponent} on ${formattedDate}`
         };
       }
       return null;
