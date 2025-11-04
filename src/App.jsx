@@ -631,10 +631,7 @@ export default function FantasyBasketball() {
                     {standings.map((team, index) => (
                       <tr key={team.id} className="border-b hover:bg-gray-50">
                         <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {index === 0 && <Trophy className="text-yellow-500" size={24} />}
-                            <span className="font-semibold text-lg">{index + 1}</span>
-                          </div>
+                          <span className="font-semibold text-lg">{index + 1}</span>
                         </td>
                         <td className="py-4 px-4">
                           <button
@@ -655,9 +652,12 @@ export default function FantasyBasketball() {
                         </td>
                         <td className="py-4 px-4 text-center">{team.starters}/6</td>
                         <td className="py-4 px-4 text-right">
-                          <span className="text-lg font-bold text-orange-600">
-                            {team.weekScore.toFixed(1)}
-                          </span>
+                          <div className="flex items-center justify-end gap-2">
+                            {index === 0 && <Trophy className="text-yellow-500" size={24} />}
+                            <span className="text-lg font-bold text-orange-600">
+                              {team.weekScore.toFixed(1)}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}
