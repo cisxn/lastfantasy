@@ -302,6 +302,8 @@ export default function FantasyBasketball() {
       id: Date.now(),
       name: teamName.trim(),
       players: [],
+      record: { wins: 0, losses: 0 },
+      divisionRecord: { wins: 0, losses: 0 },
       createdDate: new Date().toISOString()
     };
     setTeams([...teams, newTeam]);
