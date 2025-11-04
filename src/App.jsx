@@ -256,7 +256,20 @@ export default function FantasyBasketball() {
               const fantasyPoints = calculateFantasyPoints(stats);
               return { ...player, stats, fantasyPoints };
             }
-            return player;
+            // If no stats found for this week, reset to 0
+            return { 
+              ...player, 
+              stats: {
+                pts: 0,
+                reb: 0,
+                ast: 0,
+                stl: 0,
+                blk: 0,
+                turnover: 0,
+                fg3m: 0
+              },
+              fantasyPoints: 0 
+            };
           })
         );
         return { ...team, players: updatedPlayers };
