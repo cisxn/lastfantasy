@@ -358,7 +358,9 @@ export default function FantasyBasketball() {
       name: team.name,
       weekScore: weekScore,
       totalPlayers: team.players.length,
-      starters: starters.length
+      starters: starters.length,
+      record: team.record || { wins: 0, losses: 0 },
+      divisionRecord: team.divisionRecord || { wins: 0, losses: 0 }
     };
   }).sort((a, b) => b.weekScore - a.weekScore);
 
@@ -513,6 +515,9 @@ export default function FantasyBasketball() {
                           <div className="flex items-center gap-2 flex-1">
                             <Users className="text-orange-600" size={24} />
                             <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
+                            <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full">
+                              {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)} FP
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             {viewMode === 'all' && (
@@ -616,8 +621,9 @@ export default function FantasyBasketball() {
                     <tr className="border-b-2 border-gray-300">
                       <th className="text-left py-3 px-4">Rank</th>
                       <th className="text-left py-3 px-4">Team</th>
+                      <th className="text-center py-3 px-4">Record</th>
+                      <th className="text-center py-3 px-4">Division</th>
                       <th className="text-center py-3 px-4">Starters</th>
-                      <th className="text-center py-3 px-4">Players</th>
                       <th className="text-right py-3 px-4">Fantasy Points</th>
                     </tr>
                   </thead>
@@ -626,9 +632,7 @@ export default function FantasyBasketball() {
                       <tr key={team.id} className="border-b hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            {index === 0 && <Trophy className="text-yellow-500" size={20} />}
-                            {index === 1 && <Trophy className="text-gray-400" size={20} />}
-                            {index === 2 && <Trophy className="text-orange-600" size={20} />}
+                            {index === 0 && <Trophy className="text-yellow-500" size={24} />}
                             <span className="font-semibold text-lg">{index + 1}</span>
                           </div>
                         </td>
@@ -643,8 +647,13 @@ export default function FantasyBasketball() {
                             {team.name}
                           </button>
                         </td>
+                        <td className="py-4 px-4 text-center font-semibold">
+                          {team.record.wins}-{team.record.losses}
+                        </td>
+                        <td className="py-4 px-4 text-center text-gray-600">
+                          {team.divisionRecord.wins}-{team.divisionRecord.losses}
+                        </td>
                         <td className="py-4 px-4 text-center">{team.starters}/6</td>
-                        <td className="py-4 px-4 text-center">{team.totalPlayers}</td>
                         <td className="py-4 px-4 text-right">
                           <span className="text-lg font-bold text-orange-600">
                             {team.weekScore.toFixed(1)}
