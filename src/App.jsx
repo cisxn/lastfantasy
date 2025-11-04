@@ -170,7 +170,16 @@ export default function FantasyBasketball() {
         );
         
         const firstGame = sortedGames[0];
-        const gameDate = new Date(firstGame.game.date).toLocaleDateString();
+        
+        // Fix timezone issue - parse date correctly
+        const gameDateStr = firstGame.game.date;
+        const [year, month, day] = gameDateStr.split('-');
+        const gameDate = new Date(year, month - 1, day);
+        const formattedDate = gameDate.toLocaleDateString('en-US', { 
+          month: 'numeric', 
+          day: 'numeric', 
+          year: 'numeric' 
+        });
         
         // Determine opponent
         let opponent = 'Unknown';
