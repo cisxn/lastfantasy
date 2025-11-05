@@ -570,17 +570,18 @@ export default function FantasyBasketball() {
     let totalScore = 0;
     
     starters.forEach(starter => {
-      // Check if starter played (has stats with any counting stats)
-      const starterPlayed = starter.stats && starter.stats.pts !== undefined && 
+      // Check if starter played - must have at least ONE non-zero stat
+      // If all stats are 0 (pts, reb, ast, stl, blk all = 0), they didn't play (DNP)
+      const starterPlayed = starter.stats && 
                            (starter.stats.pts > 0 || starter.stats.reb > 0 || 
                             starter.stats.ast > 0 || starter.stats.stl > 0 || 
-                            starter.stats.blk > 0);
+                            starter.stats.blk > 0 || starter.stats.turnover > 0);
       
       if (starterPlayed) {
         // Starter played, use their score (even if 0 FP from bad game)
         totalScore += starter.fantasyPoints || 0;
       } else {
-        // Starter didn't play (DNP), check for alternates based on their SLOT position
+        // Starter didn't play (DNP - all stats are 0), check for alternates based on their SLOT position
         const slot = starter.starterSlot;
         let replacement = null;
         
@@ -603,14 +604,13 @@ export default function FantasyBasketball() {
           }
         }
         
-        // Find the first alternate that played
+        // Find the first alternate that played (has any non-zero stat)
         for (const rank of ranksToCheck) {
           const alternate = alternates.find(p => p.alternateRank === rank);
           if (alternate && alternate.stats) {
-            const alternatePlayed = alternate.stats.pts !== undefined && 
-                                   (alternate.stats.pts > 0 || alternate.stats.reb > 0 || 
-                                    alternate.stats.ast > 0 || alternate.stats.stl > 0 || 
-                                    alternate.stats.blk > 0);
+            const alternatePlayed = alternate.stats.pts > 0 || alternate.stats.reb > 0 || 
+                                   alternate.stats.ast > 0 || alternate.stats.stl > 0 || 
+                                   alternate.stats.blk > 0 || alternate.stats.turnover > 0;
             if (alternatePlayed) {
               replacement = alternate;
               break;
