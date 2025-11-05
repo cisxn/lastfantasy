@@ -13,9 +13,146 @@ export default function FantasyBasketball() {
   const [selectedWeek, setSelectedWeek] = useState(3);
   const [viewMode, setViewMode] = useState('all');
   const [viewingTeamId, setViewingTeamId] = useState(null);
-  const [currentPage, setCurrentPage] = useState('teams');
+  const [currentPage, setCurrentPage] = useState('teams'); // 'teams', 'standings', or 'matchups'
 
   const SEASON_START = new Date('2025-10-20');
+  
+  // Weekly matchup schedule data
+  const matchupSchedule = {
+    1: [
+      { team1: "Ben Dover", team2: "Team Falcon" },
+      { team1: "Chase's Competitive Team", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "Top G" },
+      { team1: "Brody is a Cool Guy", team2: "#1 victory royale" },
+      { team1: "Team fiorani", team2: "Fartnem" }
+    ],
+    2: [
+      { team1: "Ben Dover", team2: "Top G" },
+      { team1: "Team Falcon", team2: "Black Mamba" },
+      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
+      { team1: "Hayden's Heated Team", team2: "Fartnem" },
+      { team1: "Brody is a Cool Guy", team2: "Team fiorani" }
+    ],
+    3: [
+      { team1: "Ben Dover", team2: "Fartnem" },
+      { team1: "Team Falcon", team2: "Chase's Competitive Team" },
+      { team1: "Top G", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "Brody is a Cool Guy" },
+      { team1: "#1 victory royale", team2: "Team fiorani" }
+    ],
+    4: [
+      { team1: "Ben Dover", team2: "Black Mamba" },
+      { team1: "Team fiorani", team2: "Team Falcon" },
+      { team1: "Chase's Competitive Team", team2: "Top G" },
+      { team1: "Hayden's Heated Team", team2: "#1 victory royale" },
+      { team1: "Brody is a Cool Guy", team2: "Fartnem" }
+    ],
+    5: [
+      { team1: "Ben Dover", team2: "Chase's Competitive Team" },
+      { team1: "Team Falcon", team2: "Top G" },
+      { team1: "Brody is a Cool Guy", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "Team fiorani" },
+      { team1: "#1 victory royale", team2: "Fartnem" }
+    ],
+    6: [
+      { team1: "Ben Dover", team2: "#1 victory royale" },
+      { team1: "Team fiorani", team2: "Black Mamba" },
+      { team1: "Team Falcon", team2: "Fartnem" },
+      { team1: "Hayden's Heated Team", team2: "Chase's Competitive Team" },
+      { team1: "Brody is a Cool Guy", team2: "Top G" }
+    ],
+    7: [
+      { team1: "Ben Dover", team2: "Hayden's Heated Team" },
+      { team1: "Team Falcon", team2: "#1 victory royale" },
+      { team1: "Black Mamba", team2: "Fartnem" },
+      { team1: "Brody is a Cool Guy", team2: "Chase's Competitive Team" },
+      { team1: "Top G", team2: "Team fiorani" }
+    ],
+    8: [
+      { team1: "Ben Dover", team2: "Brody is a Cool Guy" },
+      { team1: "Team Falcon", team2: "Hayden's Heated Team" },
+      { team1: "Chase's Competitive Team", team2: "Team fiorani" },
+      { team1: "Black Mamba", team2: "#1 victory royale" },
+      { team1: "Top G", team2: "Fartnem" }
+    ],
+    9: [
+      { team1: "Ben Dover", team2: "Chase's Competitive Team" },
+      { team1: "Team Falcon", team2: "Top G" },
+      { team1: "Hayden's Heated Team", team2: "Black Mamba" },
+      { team1: "Brody is a Cool Guy", team2: "#1 victory royale" },
+      { team1: "Team fiorani", team2: "Fartnem" }
+    ],
+    10: [
+      { team1: "Ben Dover", team2: "Team Falcon" },
+      { team1: "Chase's Competitive Team", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "Fartnem" },
+      { team1: "Top G", team2: "#1 victory royale" },
+      { team1: "Brody is a Cool Guy", team2: "Team fiorani" }
+    ],
+    11: [
+      { team1: "Ben Dover", team2: "Top G" },
+      { team1: "Team Falcon", team2: "Black Mamba" },
+      { team1: "Fartnem", team2: "Chase's Competitive Team" },
+      { team1: "Hayden's Heated Team", team2: "Brody is a Cool Guy" },
+      { team1: "#1 victory royale", team2: "Team fiorani" }
+    ],
+    12: [
+      { team1: "Ben Dover", team2: "Team fiorani" },
+      { team1: "Team Falcon", team2: "Chase's Competitive Team" },
+      { team1: "Top G", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "#1 victory royale" },
+      { team1: "Brody is a Cool Guy", team2: "Fartnem" }
+    ],
+    13: [
+      { team1: "Ben Dover", team2: "Black Mamba" },
+      { team1: "Team Falcon", team2: "Brody is a Cool Guy" },
+      { team1: "Chase's Competitive Team", team2: "Top G" },
+      { team1: "Hayden's Heated Team", team2: "Team fiorani" },
+      { team1: "#1 victory royale", team2: "Fartnem" }
+    ],
+    14: [
+      { team1: "Ben Dover", team2: "Fartnem" },
+      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
+      { team1: "Brody is a Cool Guy", team2: "Black Mamba" },
+      { team1: "Hayden's Heated Team", team2: "Top G" },
+      { team1: "Team fiorani", team2: "Team Falcon" }
+    ],
+    15: [
+      { team1: "Ben Dover", team2: "#1 victory royale" },
+      { team1: "Team fiorani", team2: "Black Mamba" },
+      { team1: "Team Falcon", team2: "Fartnem" },
+      { team1: "Hayden's Heated Team", team2: "Chase's Competitive Team" },
+      { team1: "Brody is a Cool Guy", team2: "Top G" }
+    ],
+    16: [
+      { team1: "Ben Dover", team2: "Hayden's Heated Team" },
+      { team1: "Team Falcon", team2: "#1 victory royale" },
+      { team1: "Black Mamba", team2: "Fartnem" },
+      { team1: "Brody is a Cool Guy", team2: "Chase's Competitive Team" },
+      { team1: "Top G", team2: "Team fiorani" }
+    ],
+    17: [
+      { team1: "Ben Dover", team2: "Brody is a Cool Guy" },
+      { team1: "Team Falcon", team2: "Hayden's Heated Team" },
+      { team1: "Chase's Competitive Team", team2: "Team fiorani" },
+      { team1: "Black Mamba", team2: "#1 victory royale" },
+      { team1: "Top G", team2: "Fartnem" }
+    ],
+    18: [
+      { team1: "Ben Dover", team2: "Team fiorani" },
+      { team1: "Team Falcon", team2: "Brody is a Cool Guy" },
+      { team1: "Chase's Competitive Team", team2: "Fartnem" },
+      { team1: "Hayden's Heated Team", team2: "Black Mamba" },
+      { team1: "Top G", team2: "#1 victory royale" }
+    ],
+    19: [
+      { team1: "Ben Dover", team2: "Fartnem" },
+      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
+      { team1: "Brody is a Cool Guy", team2: "Hayden's Heated Team" },
+      { team1: "Team fiorani", team2: "Team Falcon" },
+      { team1: "Black Mamba", team2: "Brody is a Cool Guy" }
+    ]
+  };
   
   const getWeekDates = (weekNumber) => {
     const startDate = new Date(SEASON_START);
@@ -333,6 +470,25 @@ export default function FantasyBasketball() {
     setTeams(updatedTeams);
   };
 
+  const editTeamRecord = (teamId) => {
+    const team = teams.find(t => t.id === teamId);
+    const wins = prompt('Enter wins:', team.record?.wins || 0);
+    const losses = prompt('Enter losses:', team.record?.losses || 0);
+    const divWins = prompt('Enter division wins:', team.divisionRecord?.wins || 0);
+    const divLosses = prompt('Enter division losses:', team.divisionRecord?.losses || 0);
+
+    if (wins === null || losses === null || divWins === null || divLosses === null) return;
+
+    const updatedTeams = teams.map(t => 
+      t.id === teamId ? { 
+        ...t, 
+        record: { wins: parseInt(wins) || 0, losses: parseInt(losses) || 0 },
+        divisionRecord: { wins: parseInt(divWins) || 0, losses: parseInt(divLosses) || 0 }
+      } : t
+    );
+    setTeams(updatedTeams);
+  };
+
   const viewTeam = (teamId) => {
     setViewingTeamId(teamId);
     setViewMode('single');
@@ -396,6 +552,17 @@ export default function FantasyBasketball() {
               >
                 <BarChart3 size={20} />
                 Standings
+              </button>
+              <button
+                onClick={() => setCurrentPage('matchups')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                  currentPage === 'matchups' 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Trophy size={20} />
+                Matchups
               </button>
             </div>
           </div>
@@ -475,7 +642,7 @@ export default function FantasyBasketball() {
               onChange={(e) => setSelectedWeek(Number(e.target.value))}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(week => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map(week => (
                 <option key={week} value={week}>Week {week}</option>
               ))}
             </select>
@@ -612,7 +779,12 @@ export default function FantasyBasketball() {
 
         {currentPage === 'standings' && (
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Standings - Week {selectedWeek}</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Standings - Week {selectedWeek}</h2>
+              <div className="text-sm text-gray-600">
+                Click team name to view details | Click record to edit
+              </div>
+            </div>
             
             {teams.length > 0 ? (
               <div className="overflow-x-auto">
@@ -644,11 +816,23 @@ export default function FantasyBasketball() {
                             {team.name}
                           </button>
                         </td>
-                        <td className="py-4 px-4 text-center font-semibold">
-                          {team.record.wins}-{team.record.losses}
+                        <td className="py-4 px-4 text-center">
+                          <button
+                            onClick={() => editTeamRecord(team.id)}
+                            className="font-semibold hover:text-orange-600 transition-colors"
+                            title="Click to edit record"
+                          >
+                            {team.record.wins}-{team.record.losses}
+                          </button>
                         </td>
-                        <td className="py-4 px-4 text-center text-gray-600">
-                          {team.divisionRecord.wins}-{team.divisionRecord.losses}
+                        <td className="py-4 px-4 text-center">
+                          <button
+                            onClick={() => editTeamRecord(team.id)}
+                            className="text-gray-600 hover:text-orange-600 transition-colors"
+                            title="Click to edit record"
+                          >
+                            {team.divisionRecord.wins}-{team.divisionRecord.losses}
+                          </button>
                         </td>
                         <td className="py-4 px-4 text-center">{team.starters}/6</td>
                         <td className="py-4 px-4 text-right">
@@ -673,6 +857,78 @@ export default function FantasyBasketball() {
                 >
                   Go to Teams
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {currentPage === 'matchups' && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Weekly Matchups - Week {selectedWeek}</h2>
+            
+            {matchupSchedule[selectedWeek] ? (
+              <div className="space-y-4">
+                {matchupSchedule[selectedWeek].map((matchup, index) => {
+                  const team1 = teams.find(t => t.name === matchup.team1);
+                  const team2 = teams.find(t => t.name === matchup.team2);
+                  
+                  const team1Score = team1 ? team1.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
+                  const team2Score = team2 ? team2.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
+                  
+                  return (
+                    <div key={index} className="border-2 border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <button
+                            onClick={() => {
+                              if (team1) {
+                                setCurrentPage('teams');
+                                viewTeam(team1.id);
+                              }
+                            }}
+                            className={`text-lg font-semibold hover:text-orange-600 transition-colors ${team1Score > team2Score && team1Score > 0 ? 'text-green-600' : 'text-gray-800'}`}
+                          >
+                            {matchup.team1}
+                          </button>
+                          <div className="text-2xl font-bold text-gray-900 mt-1">
+                            {team1Score.toFixed(1)}
+                          </div>
+                        </div>
+                        
+                        <div className="px-6 text-2xl font-bold text-gray-400">
+                          VS
+                        </div>
+                        
+                        <div className="flex-1 text-right">
+                          <button
+                            onClick={() => {
+                              if (team2) {
+                                setCurrentPage('teams');
+                                viewTeam(team2.id);
+                              }
+                            }}
+                            className={`text-lg font-semibold hover:text-orange-600 transition-colors ${team2Score > team1Score && team2Score > 0 ? 'text-green-600' : 'text-gray-800'}`}
+                          >
+                            {matchup.team2}
+                          </button>
+                          <div className="text-2xl font-bold text-gray-900 mt-1">
+                            {team2Score.toFixed(1)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {team1Score === 0 && team2Score === 0 && (
+                        <div className="text-center mt-2 text-sm text-gray-500">
+                          No stats yet this week
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No matchups scheduled for Week {selectedWeek}
               </div>
             )}
           </div>
