@@ -583,8 +583,8 @@ export default function FantasyBasketball() {
   };
 
   const standings = teams.map(team => {
-    const weekScore = calculateTeamScore(team);
     const starters = team.players.filter(p => p.role === 'Starter');
+    const weekScore = starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
     return {
       id: team.id,
       name: team.name,
@@ -760,7 +760,7 @@ export default function FantasyBasketball() {
                             <Users className="text-orange-600" size={24} />
                             <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
                             <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full">
-                              {calculateTeamScore(team).toFixed(1)} FP
+                              {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)} FP
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -902,7 +902,7 @@ export default function FantasyBasketball() {
                           <span>Players: {team.players.length}</span>
                           <span>Starters: {starters.length}</span>
                           <span className="font-bold text-orange-600">
-                            FP: {calculateTeamScore(team).toFixed(1)}
+                            FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
                           </span>
                         </div>
                       </div>
@@ -1023,8 +1023,8 @@ export default function FantasyBasketball() {
                   const team1 = teams.find(t => t.name === nameMapping[matchup.team1]);
                   const team2 = teams.find(t => t.name === nameMapping[matchup.team2]);
                   
-                  const team1Score = team1 ? calculateTeamScore(team1) : 0;
-                  const team2Score = team2 ? calculateTeamScore(team2) : 0;
+                  const team1Score = team1 ? team1.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
+                  const team2Score = team2 ? team2.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
                   
                   return (
                     <div key={index} className="border-2 border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
