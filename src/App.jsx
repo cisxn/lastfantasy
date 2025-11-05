@@ -17,140 +17,154 @@ export default function FantasyBasketball() {
 
   const SEASON_START = new Date('2025-10-20');
   
-  // Weekly matchup schedule data
+  // Mapping of real names to team names
+  const nameMapping = {
+    "Aidan": "Ben Dover",
+    "Zach": "Team fiorani",
+    "Austin": "Black Mamba",
+    "Chase": "Chase's Competitive Team",
+    "Chris": "Team Falcon",
+    "Hayden": "Hayden's Heated Team",
+    "Keegan": "Brody is a Cool Guy",
+    "Alex": "#1 victory royale",
+    "Brody": "Top G",
+    "Sean": "Fartnem"
+  };
+  
+  // Weekly matchup schedule data (using real names for display)
   const matchupSchedule = {
     1: [
-      { team1: "Ben Dover", team2: "Team Falcon" },
-      { team1: "Chase's Competitive Team", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "Top G" },
-      { team1: "Brody is a Cool Guy", team2: "#1 victory royale" },
-      { team1: "Team fiorani", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Chris" },
+      { team1: "Chase", team2: "Austin" },
+      { team1: "Hayden", team2: "Brody" },
+      { team1: "Keegan", team2: "Alex" },
+      { team1: "Zach", team2: "Sean" }
     ],
     2: [
-      { team1: "Ben Dover", team2: "Top G" },
-      { team1: "Team Falcon", team2: "Black Mamba" },
-      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
-      { team1: "Hayden's Heated Team", team2: "Fartnem" },
-      { team1: "Brody is a Cool Guy", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Brody" },
+      { team1: "Chris", team2: "Austin" },
+      { team1: "Alex", team2: "Chase" },
+      { team1: "Hayden", team2: "Sean" },
+      { team1: "Keegan", team2: "Zach" }
     ],
     3: [
-      { team1: "Ben Dover", team2: "Fartnem" },
-      { team1: "Team Falcon", team2: "Chase's Competitive Team" },
-      { team1: "Top G", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "Brody is a Cool Guy" },
-      { team1: "#1 victory royale", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Sean" },
+      { team1: "Chris", team2: "Chase" },
+      { team1: "Brody", team2: "Austin" },
+      { team1: "Hayden", team2: "Keegan" },
+      { team1: "Alex", team2: "Zach" }
     ],
     4: [
-      { team1: "Ben Dover", team2: "Black Mamba" },
-      { team1: "Team fiorani", team2: "Team Falcon" },
-      { team1: "Chase's Competitive Team", team2: "Top G" },
-      { team1: "Hayden's Heated Team", team2: "#1 victory royale" },
-      { team1: "Brody is a Cool Guy", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Austin" },
+      { team1: "Zach", team2: "Chris" },
+      { team1: "Chase", team2: "Brody" },
+      { team1: "Hayden", team2: "Alex" },
+      { team1: "Keegan", team2: "Sean" }
     ],
     5: [
-      { team1: "Ben Dover", team2: "Chase's Competitive Team" },
-      { team1: "Team Falcon", team2: "Top G" },
-      { team1: "Brody is a Cool Guy", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "Team fiorani" },
-      { team1: "#1 victory royale", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Chase" },
+      { team1: "Chris", team2: "Brody" },
+      { team1: "Keegan", team2: "Austin" },
+      { team1: "Hayden", team2: "Zach" },
+      { team1: "Alex", team2: "Sean" }
     ],
     6: [
-      { team1: "Ben Dover", team2: "#1 victory royale" },
-      { team1: "Team fiorani", team2: "Black Mamba" },
-      { team1: "Team Falcon", team2: "Fartnem" },
-      { team1: "Hayden's Heated Team", team2: "Chase's Competitive Team" },
-      { team1: "Brody is a Cool Guy", team2: "Top G" }
+      { team1: "Aidan", team2: "Alex" },
+      { team1: "Zach", team2: "Austin" },
+      { team1: "Chris", team2: "Sean" },
+      { team1: "Hayden", team2: "Chase" },
+      { team1: "Keegan", team2: "Brody" }
     ],
     7: [
-      { team1: "Ben Dover", team2: "Hayden's Heated Team" },
-      { team1: "Team Falcon", team2: "#1 victory royale" },
-      { team1: "Black Mamba", team2: "Fartnem" },
-      { team1: "Brody is a Cool Guy", team2: "Chase's Competitive Team" },
-      { team1: "Top G", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Hayden" },
+      { team1: "Chris", team2: "Alex" },
+      { team1: "Austin", team2: "Sean" },
+      { team1: "Keegan", team2: "Chase" },
+      { team1: "Brody", team2: "Zach" }
     ],
     8: [
-      { team1: "Ben Dover", team2: "Brody is a Cool Guy" },
-      { team1: "Team Falcon", team2: "Hayden's Heated Team" },
-      { team1: "Chase's Competitive Team", team2: "Team fiorani" },
-      { team1: "Black Mamba", team2: "#1 victory royale" },
-      { team1: "Top G", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Keegan" },
+      { team1: "Chris", team2: "Hayden" },
+      { team1: "Chase", team2: "Zach" },
+      { team1: "Austin", team2: "Alex" },
+      { team1: "Brody", team2: "Sean" }
     ],
     9: [
-      { team1: "Ben Dover", team2: "Chase's Competitive Team" },
-      { team1: "Team Falcon", team2: "Top G" },
-      { team1: "Hayden's Heated Team", team2: "Black Mamba" },
-      { team1: "Brody is a Cool Guy", team2: "#1 victory royale" },
-      { team1: "Team fiorani", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Chase" },
+      { team1: "Chris", team2: "Brody" },
+      { team1: "Hayden", team2: "Austin" },
+      { team1: "Keegan", team2: "Alex" },
+      { team1: "Zach", team2: "Sean" }
     ],
     10: [
-      { team1: "Ben Dover", team2: "Team Falcon" },
-      { team1: "Chase's Competitive Team", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "Fartnem" },
-      { team1: "Top G", team2: "#1 victory royale" },
-      { team1: "Brody is a Cool Guy", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Chris" },
+      { team1: "Chase", team2: "Austin" },
+      { team1: "Hayden", team2: "Sean" },
+      { team1: "Brody", team2: "Alex" },
+      { team1: "Keegan", team2: "Zach" }
     ],
     11: [
-      { team1: "Ben Dover", team2: "Top G" },
-      { team1: "Team Falcon", team2: "Black Mamba" },
-      { team1: "Fartnem", team2: "Chase's Competitive Team" },
-      { team1: "Hayden's Heated Team", team2: "Brody is a Cool Guy" },
-      { team1: "#1 victory royale", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Brody" },
+      { team1: "Chris", team2: "Austin" },
+      { team1: "Sean", team2: "Chase" },
+      { team1: "Hayden", team2: "Keegan" },
+      { team1: "Alex", team2: "Zach" }
     ],
     12: [
-      { team1: "Ben Dover", team2: "Team fiorani" },
-      { team1: "Team Falcon", team2: "Chase's Competitive Team" },
-      { team1: "Top G", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "#1 victory royale" },
-      { team1: "Brody is a Cool Guy", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Zach" },
+      { team1: "Chris", team2: "Chase" },
+      { team1: "Brody", team2: "Austin" },
+      { team1: "Hayden", team2: "Alex" },
+      { team1: "Keegan", team2: "Sean" }
     ],
     13: [
-      { team1: "Ben Dover", team2: "Black Mamba" },
-      { team1: "Team Falcon", team2: "Brody is a Cool Guy" },
-      { team1: "Chase's Competitive Team", team2: "Top G" },
-      { team1: "Hayden's Heated Team", team2: "Team fiorani" },
-      { team1: "#1 victory royale", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Austin" },
+      { team1: "Chris", team2: "Keegan" },
+      { team1: "Chase", team2: "Brody" },
+      { team1: "Hayden", team2: "Zach" },
+      { team1: "Alex", team2: "Sean" }
     ],
     14: [
-      { team1: "Ben Dover", team2: "Fartnem" },
-      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
-      { team1: "Brody is a Cool Guy", team2: "Black Mamba" },
-      { team1: "Hayden's Heated Team", team2: "Top G" },
-      { team1: "Team fiorani", team2: "Team Falcon" }
+      { team1: "Aidan", team2: "Sean" },
+      { team1: "Alex", team2: "Chase" },
+      { team1: "Keegan", team2: "Austin" },
+      { team1: "Hayden", team2: "Brody" },
+      { team1: "Zach", team2: "Chris" }
     ],
     15: [
-      { team1: "Ben Dover", team2: "#1 victory royale" },
-      { team1: "Team fiorani", team2: "Black Mamba" },
-      { team1: "Team Falcon", team2: "Fartnem" },
-      { team1: "Hayden's Heated Team", team2: "Chase's Competitive Team" },
-      { team1: "Brody is a Cool Guy", team2: "Top G" }
+      { team1: "Aidan", team2: "Alex" },
+      { team1: "Zach", team2: "Austin" },
+      { team1: "Chris", team2: "Sean" },
+      { team1: "Hayden", team2: "Chase" },
+      { team1: "Keegan", team2: "Brody" }
     ],
     16: [
-      { team1: "Ben Dover", team2: "Hayden's Heated Team" },
-      { team1: "Team Falcon", team2: "#1 victory royale" },
-      { team1: "Black Mamba", team2: "Fartnem" },
-      { team1: "Brody is a Cool Guy", team2: "Chase's Competitive Team" },
-      { team1: "Top G", team2: "Team fiorani" }
+      { team1: "Aidan", team2: "Hayden" },
+      { team1: "Chris", team2: "Alex" },
+      { team1: "Austin", team2: "Sean" },
+      { team1: "Keegan", team2: "Chase" },
+      { team1: "Brody", team2: "Zach" }
     ],
     17: [
-      { team1: "Ben Dover", team2: "Brody is a Cool Guy" },
-      { team1: "Team Falcon", team2: "Hayden's Heated Team" },
-      { team1: "Chase's Competitive Team", team2: "Team fiorani" },
-      { team1: "Black Mamba", team2: "#1 victory royale" },
-      { team1: "Top G", team2: "Fartnem" }
+      { team1: "Aidan", team2: "Keegan" },
+      { team1: "Chris", team2: "Hayden" },
+      { team1: "Chase", team2: "Zach" },
+      { team1: "Austin", team2: "Alex" },
+      { team1: "Brody", team2: "Sean" }
     ],
     18: [
-      { team1: "Ben Dover", team2: "Team fiorani" },
-      { team1: "Team Falcon", team2: "Brody is a Cool Guy" },
-      { team1: "Chase's Competitive Team", team2: "Fartnem" },
-      { team1: "Hayden's Heated Team", team2: "Black Mamba" },
-      { team1: "Top G", team2: "#1 victory royale" }
+      { team1: "Aidan", team2: "Zach" },
+      { team1: "Chris", team2: "Keegan" },
+      { team1: "Chase", team2: "Sean" },
+      { team1: "Hayden", team2: "Austin" },
+      { team1: "Brody", team2: "Alex" }
     ],
     19: [
-      { team1: "Ben Dover", team2: "Fartnem" },
-      { team1: "#1 victory royale", team2: "Chase's Competitive Team" },
-      { team1: "Brody is a Cool Guy", team2: "Hayden's Heated Team" },
-      { team1: "Team fiorani", team2: "Team Falcon" },
-      { team1: "Black Mamba", team2: "Brody is a Cool Guy" }
+      { team1: "Aidan", team2: "Sean" },
+      { team1: "Alex", team2: "Chase" },
+      { team1: "Keegan", team2: "Hayden" },
+      { team1: "Zach", team2: "Chris" },
+      { team1: "Austin", team2: "Keegan" }
     ]
   };
   
@@ -869,8 +883,9 @@ export default function FantasyBasketball() {
             {matchupSchedule[selectedWeek] ? (
               <div className="space-y-4">
                 {matchupSchedule[selectedWeek].map((matchup, index) => {
-                  const team1 = teams.find(t => t.name === matchup.team1);
-                  const team2 = teams.find(t => t.name === matchup.team2);
+                  // Map real names to team names to find teams
+                  const team1 = teams.find(t => t.name === nameMapping[matchup.team1]);
+                  const team2 = teams.find(t => t.name === nameMapping[matchup.team2]);
                   
                   const team1Score = team1 ? team1.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
                   const team2Score = team2 ? team2.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
