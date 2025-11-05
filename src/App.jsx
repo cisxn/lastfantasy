@@ -284,6 +284,7 @@ export default function FantasyBasketball() {
             },
             fantasyPoints: 0,
             role: 'Bench',
+            alternateRank: null, // null, 'G1', 'G2', 'G3', 'G4', 'F1', 'F2', 'F3', 'F4', 'C1', 'C2'
             addedDate: new Date().toISOString()
           }]
         };
@@ -296,6 +297,21 @@ export default function FantasyBasketball() {
     setSearchResults([]);
     setShowDropdown(false);
     setError('');
+  };
+
+  const updatePlayerAlternateRank = (teamId, playerId, rank) => {
+    const updatedTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          players: t.players.map(p => 
+            p.id === playerId ? { ...p, alternateRank: rank } : p
+          )
+        };
+      }
+      return t;
+    });
+    setTeams(updatedTeams);
   };
 
   const fetchPlayerStats = async (playerId) => {
@@ -514,7 +530,8 @@ export default function FantasyBasketball() {
   };
 
   const getStarters = (players) => players.filter(p => p.role === 'Starter');
-  const getBench = (players) => players.filter(p => p.role === 'Bench');
+  const getBench = (players) => players.filter(p => p.role === 'Bench' && !p.alternateRank);
+  const getAlternates = (players) => players.filter(p => p.alternateRank);
 
   const displayTeams = viewMode === 'single' 
     ? teams.filter(t => t.id === viewingTeamId)
@@ -689,6 +706,7 @@ export default function FantasyBasketball() {
                   {displayTeams.map(team => {
                     const starters = getStarters(team.players);
                     const bench = getBench(team.players);
+                    const alternates = getAlternates(team.players);
                     
                     return (
                       <div key={team.id} className="bg-white rounded-lg shadow-lg p-6">
@@ -724,39 +742,112 @@ export default function FantasyBasketball() {
                           </div>
                         </div>
 
-                        {starters.length > 0 && (
-                          <div className="mb-4">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starters</h3>
-                            <div className="space-y-2">
-                              {starters.map(player => (
-                                <PlayerCard 
-                                  key={player.id} 
-                                  player={player} 
-                                  teamId={team.id}
-                                  onRemove={removePlayer}
-                                  onRoleChange={updatePlayerRole}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          <div>
+                            {starters.length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starters</h3>
+                                <div className="space-y-2">
+                                  {starters.map(player => (
+                                    <PlayerCard 
+                                      key={player.id} 
+                                      player={player} 
+                                      teamId={team.id}
+                                      onRemove={removePlayer}
+                                      onRoleChange={updatePlayerRole}
+                                      onAlternateChange={updatePlayerAlternateRank}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
-                        {bench.length > 0 && (
-                          <div className="mb-4">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Bench</h3>
-                            <div className="space-y-2">
-                              {bench.map(player => (
-                                <PlayerCard 
-                                  key={player.id} 
-                                  player={player} 
-                                  teamId={team.id}
-                                  onRemove={removePlayer}
-                                  onRoleChange={updatePlayerRole}
-                                />
-                              ))}
-                            </div>
+                            {bench.length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Bench</h3>
+                                <div className="space-y-2">
+                                  {bench.map(player => (
+                                    <PlayerCard 
+                                      key={player.id} 
+                                      player={player} 
+                                      teamId={team.id}
+                                      onRemove={removePlayer}
+                                      onRoleChange={updatePlayerRole}
+                                      onAlternateChange={updatePlayerAlternateRank}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {viewMode === 'single' && (
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Alternates</h3>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="text-xs text-gray-600 mb-3">
+                                  Drag bench players here to rank them by position
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-600 mb-1">GUARDS</div>
+                                    {['G1', 'G2', 'G3', 'G4'].map(rank => {
+                                      const player = alternates.find(p => p.alternateRank === rank);
+                                      return (
+                                        <AlternateSlot 
+                                          key={rank}
+                                          rank={rank}
+                                          player={player}
+                                          teamId={team.id}
+                                          onRemove={removePlayer}
+                                          onAlternateChange={updatePlayerAlternateRank}
+                                          benchPlayers={bench}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-600 mb-1">FORWARDS</div>
+                                    {['F1', 'F2', 'F3', 'F4'].map(rank => {
+                                      const player = alternates.find(p => p.alternateRank === rank);
+                                      return (
+                                        <AlternateSlot 
+                                          key={rank}
+                                          rank={rank}
+                                          player={player}
+                                          teamId={team.id}
+                                          onRemove={removePlayer}
+                                          onAlternateChange={updatePlayerAlternateRank}
+                                          benchPlayers={bench}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-600 mb-1">CENTERS</div>
+                                    {['C1', 'C2'].map(rank => {
+                                      const player = alternates.find(p => p.alternateRank === rank);
+                                      return (
+                                        <AlternateSlot 
+                                          key={rank}
+                                          rank={rank}
+                                          player={player}
+                                          teamId={team.id}
+                                          onRemove={removePlayer}
+                                          onAlternateChange={updatePlayerAlternateRank}
+                                          benchPlayers={bench}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
                         {team.players.length === 0 && (
                           <p className="text-gray-500 italic text-center py-8">No players yet</p>
@@ -953,7 +1044,7 @@ export default function FantasyBasketball() {
   );
 }
 
-function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
+function PlayerCard({ player, teamId, onRemove, onRoleChange, onAlternateChange }) {
   return (
     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
       <div className="flex-1">
@@ -993,6 +1084,60 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange }) {
           <Trash2 size={18} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benchPlayers }) {
+  const [showSelector, setShowSelector] = useState(false);
+  
+  return (
+    <div className="mb-2">
+      <div className="text-xs font-semibold text-gray-500 mb-1">{rank}</div>
+      {player ? (
+        <div className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+          <div className="flex-1 text-sm">
+            <div className="font-semibold">{player.name}</div>
+            <div className="text-xs text-gray-600">{player.position} | FP: {player.fantasyPoints?.toFixed(1) || '0.0'}</div>
+          </div>
+          <button
+            onClick={() => onAlternateChange(teamId, player.id, null)}
+            className="p-1 text-red-600 hover:bg-red-50 rounded text-xs"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <button
+            onClick={() => setShowSelector(!showSelector)}
+            className="w-full p-2 border-2 border-dashed border-gray-300 rounded text-sm text-gray-500 hover:border-orange-400 hover:text-orange-600 transition-colors"
+          >
+            + Add Player
+          </button>
+          {showSelector && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+              {benchPlayers.length > 0 ? (
+                benchPlayers.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onAlternateChange(teamId, p.id, rank);
+                      setShowSelector(false);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-orange-50 border-b last:border-b-0 text-sm"
+                  >
+                    <div className="font-semibold">{p.name}</div>
+                    <div className="text-xs text-gray-600">{p.position}</div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-gray-500">No bench players</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
