@@ -565,6 +565,7 @@ export default function FantasyBasketball() {
   const calculateTeamScore = (team) => {
     const starters = team.players.filter(p => p.starterSlot);
     const alternates = team.players.filter(p => p.alternateRank);
+    const flexPositionType = team.flexPositionType || 'G';
     
     let totalScore = 0;
     
@@ -592,8 +593,14 @@ export default function FantasyBasketball() {
         } else if (slot === 'C') {
           ranksToCheck = ['C1', 'C2'];
         } else if (slot === 'FLEX') {
-          // FLEX can use any alternate
-          ranksToCheck = ['G1', 'G2', 'G3', 'G4', 'F1', 'F2', 'F3', 'F4', 'C1', 'C2'];
+          // FLEX uses the team's selected position type
+          if (flexPositionType === 'G') {
+            ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
+          } else if (flexPositionType === 'F') {
+            ranksToCheck = ['F1', 'F2', 'F3', 'F4'];
+          } else if (flexPositionType === 'C') {
+            ranksToCheck = ['C1', 'C2'];
+          }
         }
         
         // Find the first alternate that played
@@ -829,7 +836,21 @@ export default function FantasyBasketball() {
                           <div>
                             {/* Starter Slots */}
                             <div className="mb-4">
-                              <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starting Lineup</h3>
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-sm font-semibold text-gray-700 uppercase">Starting Lineup</h3>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600">FLEX Uses:</span>
+                                  <select
+                                    value={team.flexPositionType || 'G'}
+                                    onChange={(e) => updateFlexPositionType(team.id, e.target.value)}
+                                    className="text-xs px-2 py-1 border rounded focus:ring-2 focus:ring-orange-500"
+                                  >
+                                    <option value="G">Guards</option>
+                                    <option value="F">Forwards</option>
+                                    <option value="C">Centers</option>
+                                  </select>
+                                </div>
+                              </div>
                               <div className="space-y-2">
                                 {['G1', 'G2', 'F1', 'F2', 'C', 'FLEX'].map(slot => {
                                   const player = team.players.find(p => p.starterSlot === slot);
