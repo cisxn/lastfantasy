@@ -284,6 +284,7 @@ export default function FantasyBasketball() {
             },
             fantasyPoints: 0,
             role: 'Bench',
+            starterSlot: null, // null, 'G1', 'G2', 'F1', 'F2', 'C', 'FLEX'
             alternateRank: null, // null, 'G1', 'G2', 'G3', 'G4', 'F1', 'F2', 'F3', 'F4', 'C1', 'C2'
             addedDate: new Date().toISOString()
           }]
@@ -297,6 +298,21 @@ export default function FantasyBasketball() {
     setSearchResults([]);
     setShowDropdown(false);
     setError('');
+  };
+
+  const updatePlayerStarterSlot = (teamId, playerId, slot) => {
+    const updatedTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          players: t.players.map(p => 
+            p.id === playerId ? { ...p, starterSlot: slot, role: slot ? 'Starter' : 'Bench' } : p
+          )
+        };
+      }
+      return t;
+    });
+    setTeams(updatedTeams);
   };
 
   const updatePlayerAlternateRank = (teamId, playerId, rank) => {
@@ -471,10 +487,18 @@ export default function FantasyBasketball() {
       players: [],
       record: { wins: 0, losses: 0 },
       divisionRecord: { wins: 0, losses: 0 },
+      flexPositionType: 'G', // 'G', 'F', or 'C' - which position alternates to use for FLEX
       createdDate: new Date().toISOString()
     };
     setTeams([...teams, newTeam]);
     setSelectedTeam(newTeam.id);
+  };
+
+  const updateFlexPositionType = (teamId, positionType) => {
+    const updatedTeams = teams.map(t => 
+      t.id === teamId ? { ...t, flexPositionType: positionType } : t
+    );
+    setTeams(updatedTeams);
   };
 
   const deleteTeam = (teamId) => {
@@ -529,8 +553,8 @@ export default function FantasyBasketball() {
     setViewingTeamId(null);
   };
 
-  const getStarters = (players) => players.filter(p => p.role === 'Starter');
-  const getBench = (players) => players.filter(p => p.role === 'Bench' && !p.alternateRank);
+  const getStarters = (players) => players.filter(p => p.starterSlot);
+  const getBench = (players) => players.filter(p => !p.starterSlot && !p.alternateRank);
   const getAlternates = (players) => players.filter(p => p.alternateRank);
 
   const displayTeams = viewMode === 'single' 
@@ -539,13 +563,13 @@ export default function FantasyBasketball() {
 
   // Calculate team score with alternate replacement logic
   const calculateTeamScore = (team) => {
-    const starters = team.players.filter(p => p.role === 'Starter');
+    const starters = team.players.filter(p => p.starterSlot);
     const alternates = team.players.filter(p => p.alternateRank);
     
     let totalScore = 0;
     
     starters.forEach(starter => {
-      // Check if starter played (has stats and minutes > 0)
+      // Check if starter played (has stats with any counting stats)
       const starterPlayed = starter.stats && starter.stats.pts !== undefined && 
                            (starter.stats.pts > 0 || starter.stats.reb > 0 || 
                             starter.stats.ast > 0 || starter.stats.stl > 0 || 
@@ -555,25 +579,27 @@ export default function FantasyBasketball() {
         // Starter played, use their score (even if 0 FP from bad game)
         totalScore += starter.fantasyPoints || 0;
       } else {
-        // Starter didn't play (DNP), check for alternates
-        const position = starter.position;
+        // Starter didn't play (DNP), check for alternates based on their SLOT position
+        const slot = starter.starterSlot;
         let replacement = null;
         
-        // Determine which alternate ranks to check based on EXACT position
+        // Determine which alternate ranks to check based on starter slot
         let ranksToCheck = [];
-        if (position === 'G') {
+        if (slot === 'G1' || slot === 'G2') {
           ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
-        } else if (position === 'F') {
+        } else if (slot === 'F1' || slot === 'F2') {
           ranksToCheck = ['F1', 'F2', 'F3', 'F4'];
-        } else if (position === 'C') {
+        } else if (slot === 'C') {
           ranksToCheck = ['C1', 'C2'];
+        } else if (slot === 'FLEX') {
+          // FLEX can use any alternate
+          ranksToCheck = ['G1', 'G2', 'G3', 'G4', 'F1', 'F2', 'F3', 'F4', 'C1', 'C2'];
         }
         
-        // Find the first alternate with a score (even if 0)
+        // Find the first alternate that played
         for (const rank of ranksToCheck) {
           const alternate = alternates.find(p => p.alternateRank === rank);
           if (alternate && alternate.stats) {
-            // Check if alternate played
             const alternatePlayed = alternate.stats.pts !== undefined && 
                                    (alternate.stats.pts > 0 || alternate.stats.reb > 0 || 
                                     alternate.stats.ast > 0 || alternate.stats.stl > 0 || 
@@ -588,7 +614,6 @@ export default function FantasyBasketball() {
         if (replacement) {
           totalScore += replacement.fantasyPoints || 0;
         }
-        // If no replacement found or replacement didn't play, score stays 0
       }
     });
     
@@ -802,23 +827,26 @@ export default function FantasyBasketball() {
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                           <div>
-                            {starters.length > 0 && (
-                              <div className="mb-4">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starters</h3>
-                                <div className="space-y-2">
-                                  {starters.map(player => (
-                                    <PlayerCard 
-                                      key={player.id} 
-                                      player={player} 
+                            {/* Starter Slots */}
+                            <div className="mb-4">
+                              <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starting Lineup</h3>
+                              <div className="space-y-2">
+                                {['G1', 'G2', 'F1', 'F2', 'C', 'FLEX'].map(slot => {
+                                  const player = team.players.find(p => p.starterSlot === slot);
+                                  return (
+                                    <StarterSlot
+                                      key={slot}
+                                      slot={slot}
+                                      player={player}
                                       teamId={team.id}
                                       onRemove={removePlayer}
-                                      onRoleChange={updatePlayerRole}
-                                      onAlternateChange={updatePlayerAlternateRank}
+                                      onSlotChange={updatePlayerStarterSlot}
+                                      benchPlayers={bench}
                                     />
-                                  ))}
-                                </div>
+                                  );
+                                })}
                               </div>
-                            )}
+                            </div>
 
                             {bench.length > 0 && (
                               <div className="mb-4">
@@ -1127,14 +1155,6 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange, onAlternateChange 
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <select
-          value={player.role}
-          onChange={(e) => onRoleChange(teamId, player.id, e.target.value)}
-          className="text-sm px-2 py-1 border rounded focus:ring-2 focus:ring-orange-500"
-        >
-          <option value="Starter">Starter</option>
-          <option value="Bench">Bench</option>
-        </select>
         <button
           onClick={() => onRemove(teamId, player.id)}
           className="p-2 text-red-600 hover:bg-red-50 rounded"
@@ -1142,6 +1162,87 @@ function PlayerCard({ player, teamId, onRemove, onRoleChange, onAlternateChange 
           <Trash2 size={18} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function StarterSlot({ slot, player, teamId, onSlotChange, benchPlayers }) {
+  const [showSelector, setShowSelector] = useState(false);
+  
+  const getSlotLabel = (slot) => {
+    const labels = {
+      'G1': 'Guard 1',
+      'G2': 'Guard 2',
+      'F1': 'Forward 1',
+      'F2': 'Forward 2',
+      'C': 'Center',
+      'FLEX': 'Flex'
+    };
+    return labels[slot] || slot;
+  };
+  
+  return (
+    <div className="mb-2">
+      <div className="text-xs font-semibold text-gray-500 mb-1">{getSlotLabel(slot)}</div>
+      {player ? (
+        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border-2 border-green-200">
+          <div className="flex-1">
+            <div className="font-semibold text-gray-800">{player.name}</div>
+            <div className="text-sm text-gray-600">{player.position} | {player.team_abbr}</div>
+            {player.stats && player.stats.pts >= 0 && (
+              <>
+                <div className="text-xs text-gray-500 mt-1">
+                  PTS: {player.stats.pts?.toFixed(1)} | REB: {player.stats.reb?.toFixed(1)} | AST: {player.stats.ast?.toFixed(1)}
+                </div>
+                {player.stats.gameInfo && (
+                  <div className="text-xs text-blue-600 mt-1 font-medium">
+                    {player.stats.gameInfo}
+                  </div>
+                )}
+              </>
+            )}
+            <div className="text-sm font-bold text-orange-600 mt-1">
+              FP: {player.fantasyPoints?.toFixed(1) || '0.0'}
+            </div>
+          </div>
+          <button
+            onClick={() => onSlotChange(teamId, player.id, null)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <button
+            onClick={() => setShowSelector(!showSelector)}
+            className="w-full p-3 border-2 border-dashed border-gray-300 rounded text-sm text-gray-500 hover:border-orange-400 hover:text-orange-600 transition-colors"
+          >
+            + Add Player to {getSlotLabel(slot)}
+          </button>
+          {showSelector && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
+              {benchPlayers.length > 0 ? (
+                benchPlayers.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onSlotChange(teamId, p.id, slot);
+                      setShowSelector(false);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-orange-50 border-b last:border-b-0"
+                  >
+                    <div className="font-semibold">{p.name}</div>
+                    <div className="text-xs text-gray-600">{p.position} | FP: {p.fantasyPoints?.toFixed(1) || '0.0'}</div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-gray-500">No bench players available</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
