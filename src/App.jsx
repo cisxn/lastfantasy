@@ -537,9 +537,54 @@ export default function FantasyBasketball() {
     ? teams.filter(t => t.id === viewingTeamId)
     : teams;
 
-  const standings = teams.map(team => {
+  // Calculate team score with alternate replacement logic
+  const calculateTeamScore = (team) => {
     const starters = team.players.filter(p => p.role === 'Starter');
-    const weekScore = starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
+    const alternates = team.players.filter(p => p.alternateRank);
+    
+    let totalScore = 0;
+    
+    starters.forEach(starter => {
+      if (starter.fantasyPoints > 0) {
+        // Starter played, use their score
+        totalScore += starter.fantasyPoints;
+      } else {
+        // Starter didn't play (0 FP), check for alternates
+        const position = starter.position;
+        let replacement = null;
+        
+        // Determine which alternate ranks to check based on position
+        let ranksToCheck = [];
+        if (position === 'G' || position === 'G-F') {
+          ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
+        } else if (position === 'F' || position === 'F-C' || position === 'F-G') {
+          ranksToCheck = ['F1', 'F2', 'F3', 'F4'];
+        } else if (position === 'C') {
+          ranksToCheck = ['C1', 'C2'];
+        }
+        
+        // Find the first alternate with a score > 0
+        for (const rank of ranksToCheck) {
+          const alternate = alternates.find(p => p.alternateRank === rank);
+          if (alternate && alternate.fantasyPoints > 0) {
+            replacement = alternate;
+            break;
+          }
+        }
+        
+        if (replacement) {
+          totalScore += replacement.fantasyPoints;
+        }
+        // If no replacement found, score stays 0
+      }
+    });
+    
+    return totalScore;
+  };
+
+  const standings = teams.map(team => {
+    const weekScore = calculateTeamScore(team);
+    const starters = team.players.filter(p => p.role === 'Starter');
     return {
       id: team.id,
       name: team.name,
@@ -715,7 +760,7 @@ export default function FantasyBasketball() {
                             <Users className="text-orange-600" size={24} />
                             <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
                             <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full">
-                              {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)} FP
+                              {calculateTeamScore(team).toFixed(1)} FP
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -857,7 +902,7 @@ export default function FantasyBasketball() {
                           <span>Players: {team.players.length}</span>
                           <span>Starters: {starters.length}</span>
                           <span className="font-bold text-orange-600">
-                            FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
+                            FP: {calculateTeamScore(team).toFixed(1)}
                           </span>
                         </div>
                       </div>
@@ -978,8 +1023,8 @@ export default function FantasyBasketball() {
                   const team1 = teams.find(t => t.name === nameMapping[matchup.team1]);
                   const team2 = teams.find(t => t.name === nameMapping[matchup.team2]);
                   
-                  const team1Score = team1 ? team1.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
-                  const team2Score = team2 ? team2.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
+                  const team1Score = team1 ? calculateTeamScore(team1) : 0;
+                  const team2Score = team2 ? calculateTeamScore(team2) : 0;
                   
                   return (
                     <div key={index} className="border-2 border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
