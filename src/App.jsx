@@ -545,37 +545,50 @@ export default function FantasyBasketball() {
     let totalScore = 0;
     
     starters.forEach(starter => {
-      if (starter.fantasyPoints > 0) {
-        // Starter played, use their score
-        totalScore += starter.fantasyPoints;
+      // Check if starter played (has stats and minutes > 0)
+      const starterPlayed = starter.stats && starter.stats.pts !== undefined && 
+                           (starter.stats.pts > 0 || starter.stats.reb > 0 || 
+                            starter.stats.ast > 0 || starter.stats.stl > 0 || 
+                            starter.stats.blk > 0);
+      
+      if (starterPlayed) {
+        // Starter played, use their score (even if 0 FP from bad game)
+        totalScore += starter.fantasyPoints || 0;
       } else {
-        // Starter didn't play (0 FP), check for alternates
+        // Starter didn't play (DNP), check for alternates
         const position = starter.position;
         let replacement = null;
         
-        // Determine which alternate ranks to check based on position
+        // Determine which alternate ranks to check based on EXACT position
         let ranksToCheck = [];
-        if (position === 'G' || position === 'G-F') {
+        if (position === 'G') {
           ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
-        } else if (position === 'F' || position === 'F-C' || position === 'F-G') {
+        } else if (position === 'F') {
           ranksToCheck = ['F1', 'F2', 'F3', 'F4'];
         } else if (position === 'C') {
           ranksToCheck = ['C1', 'C2'];
         }
         
-        // Find the first alternate with a score > 0
+        // Find the first alternate with a score (even if 0)
         for (const rank of ranksToCheck) {
           const alternate = alternates.find(p => p.alternateRank === rank);
-          if (alternate && alternate.fantasyPoints > 0) {
-            replacement = alternate;
-            break;
+          if (alternate && alternate.stats) {
+            // Check if alternate played
+            const alternatePlayed = alternate.stats.pts !== undefined && 
+                                   (alternate.stats.pts > 0 || alternate.stats.reb > 0 || 
+                                    alternate.stats.ast > 0 || alternate.stats.stl > 0 || 
+                                    alternate.stats.blk > 0);
+            if (alternatePlayed) {
+              replacement = alternate;
+              break;
+            }
           }
         }
         
         if (replacement) {
-          totalScore += replacement.fantasyPoints;
+          totalScore += replacement.fantasyPoints || 0;
         }
-        // If no replacement found, score stays 0
+        // If no replacement found or replacement didn't play, score stays 0
       }
     });
     
@@ -583,8 +596,8 @@ export default function FantasyBasketball() {
   };
 
   const standings = teams.map(team => {
+    const weekScore = calculateTeamScore(team);
     const starters = team.players.filter(p => p.role === 'Starter');
-    const weekScore = starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0);
     return {
       id: team.id,
       name: team.name,
@@ -760,7 +773,7 @@ export default function FantasyBasketball() {
                             <Users className="text-orange-600" size={24} />
                             <h2 className="text-xl md:text-2xl font-bold text-gray-800">{team.name}</h2>
                             <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full">
-                              {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)} FP
+                              {calculateTeamScore(team).toFixed(1)} FP
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -902,7 +915,7 @@ export default function FantasyBasketball() {
                           <span>Players: {team.players.length}</span>
                           <span>Starters: {starters.length}</span>
                           <span className="font-bold text-orange-600">
-                            FP: {starters.reduce((sum, p) => sum + (p.fantasyPoints || 0), 0).toFixed(1)}
+                            FP: {calculateTeamScore(team).toFixed(1)}
                           </span>
                         </div>
                       </div>
@@ -1023,8 +1036,8 @@ export default function FantasyBasketball() {
                   const team1 = teams.find(t => t.name === nameMapping[matchup.team1]);
                   const team2 = teams.find(t => t.name === nameMapping[matchup.team2]);
                   
-                  const team1Score = team1 ? team1.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
-                  const team2Score = team2 ? team2.players.filter(p => p.role === 'Starter').reduce((sum, p) => sum + (p.fantasyPoints || 0), 0) : 0;
+                  const team1Score = team1 ? calculateTeamScore(team1) : 0;
+                  const team2Score = team2 ? calculateTeamScore(team2) : 0;
                   
                   return (
                     <div key={index} className="border-2 border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors">
