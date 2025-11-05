@@ -17,18 +17,18 @@ export default function FantasyBasketball() {
 
   const SEASON_START = new Date('2025-10-20');
   
-  // Mapping of real names to team names
+  // Mapping is now identity since teams use real names
   const nameMapping = {
-    "Aidan": "Ben Dover",
-    "Zach": "Team fiorani",
-    "Austin": "Black Mamba",
-    "Chase": "Chase's Competitive Team",
-    "Chris": "Team Falcon",
-    "Hayden": "Hayden's Heated Team",
-    "Keegan": "Brody is a Cool Guy",
-    "Alex": "#1 victory royale",
-    "Brody": "Top G",
-    "Sean": "Fartnem"
+    "Aidan": "Aidan",
+    "Zach": "Zach",
+    "Austin": "Austin",
+    "Chase": "Chase",
+    "Chris": "Chris",
+    "Hayden": "Hayden",
+    "Keegan": "Keegan",
+    "Alex": "Alex",
+    "Brody": "Brody",
+    "Sean": "Sean"
   };
   
   // Weekly matchup schedule data (using real names for display)
