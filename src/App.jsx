@@ -836,20 +836,18 @@ export default function FantasyBasketball() {
                           <div>
                             {/* Starter Slots */}
                             <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-gray-700 uppercase">Starting Lineup</h3>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600">FLEX Uses:</span>
-                                  <select
-                                    value={team.flexPositionType || 'G'}
-                                    onChange={(e) => updateFlexPositionType(team.id, e.target.value)}
-                                    className="text-xs px-2 py-1 border rounded focus:ring-2 focus:ring-orange-500"
-                                  >
-                                    <option value="G">Guards</option>
-                                    <option value="F">Forwards</option>
-                                    <option value="C">Centers</option>
-                                  </select>
-                                </div>
+                              <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">Starting Lineup</h3>
+                              <div className="bg-blue-50 p-2 rounded mb-3 flex items-center justify-between">
+                                <span className="text-xs font-semibold text-gray-700">FLEX Position Type:</span>
+                                <select
+                                  value={team.flexPositionType || 'G'}
+                                  onChange={(e) => updateFlexPositionType(team.id, e.target.value)}
+                                  className="text-sm px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 bg-white"
+                                >
+                                  <option value="G">Guards (G1-G4)</option>
+                                  <option value="F">Forwards (F1-F4)</option>
+                                  <option value="C">Centers (C1-C2)</option>
+                                </select>
                               </div>
                               <div className="space-y-2">
                                 {['G1', 'G2', 'F1', 'F2', 'C', 'FLEX'].map(slot => {
