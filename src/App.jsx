@@ -568,7 +568,8 @@ export default function FantasyBasketball() {
     const flexPositionType = team.flexPositionType || 'G';
     
     let totalScore = 0;
-    let breakdown = []; // For debugging
+    let breakdown = [];
+    let usedAlternates = new Set(); // Track which alternates have been used
     
     starters.forEach(starter => {
       // Check if starter played - must have at least ONE non-zero stat
@@ -602,14 +603,16 @@ export default function FantasyBasketball() {
           }
         }
         
+        // Find the first alternate that played AND hasn't been used yet
         for (const rank of ranksToCheck) {
           const alternate = alternates.find(p => p.alternateRank === rank);
-          if (alternate && alternate.stats) {
+          if (alternate && !usedAlternates.has(alternate.id) && alternate.stats) {
             const alternatePlayed = alternate.stats.pts > 0 || alternate.stats.reb > 0 || 
                                    alternate.stats.ast > 0 || alternate.stats.stl > 0 || 
                                    alternate.stats.blk > 0 || alternate.stats.turnover > 0;
             if (alternatePlayed) {
               replacement = alternate;
+              usedAlternates.add(alternate.id); // Mark this alternate as used
               break;
             }
           }
@@ -620,7 +623,7 @@ export default function FantasyBasketball() {
           totalScore += score;
           breakdown.push(`${starter.name} (${starter.starterSlot}) DNP → ${replacement.name} (${replacement.alternateRank}): ${score.toFixed(1)} FP`);
         } else {
-          breakdown.push(`${starter.name} (${starter.starterSlot}) DNP → No alternate: 0.0 FP`);
+          breakdown.push(`${starter.name} (${starter.starterSlot}) DNP → No alternate available: 0.0 FP`);
         }
       }
     });
