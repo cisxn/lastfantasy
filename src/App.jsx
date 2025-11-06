@@ -14,6 +14,7 @@ export default function FantasyBasketball() {
   const [viewMode, setViewMode] = useState('all');
   const [viewingTeamId, setViewingTeamId] = useState(null);
   const [currentPage, setCurrentPage] = useState('teams'); // 'teams', 'standings', or 'matchups'
+  const [finalizingWeek, setFinalizingWeek] = useState(false);
 
   const SEASON_START = new Date('2025-10-20');
   
@@ -500,6 +501,103 @@ export default function FantasyBasketball() {
     );
     setTeams(updatedTeams);
   };
+
+  const finalizeWeekRecords = () => {
+    // Don't finalize weeks 1-2 (already done)
+    if (selectedWeek <= 2) {
+      setError('Weeks 1-2 are already finalized and cannot be updated.');
+      return;
+    }
+
+    setFinalizingWeek(true);
+    setError('');
+
+    // Get matchups for the selected week
+    const weekMatchups = matchupSchedule[selectedWeek];
+    if (!weekMatchups) {
+      setError('No matchups found for this week.');
+      setFinalizingWeek(false);
+      return;
+    }
+
+    // Calculate results and update records
+    const updatedTeams = teams.map(team => {
+      // Find this team's matchup for the week
+      const matchup = weekMatchups.find(m => 
+        nameMapping[m.team1] === team.name || nameMapping[m.team2] === team.name
+      );
+
+      if (!matchup) return team;
+
+      // Get opponent
+      const isTeam1 = nameMapping[matchup.team1] === team.name;
+      const opponentName = isTeam1 ? nameMapping[matchup.team2] : nameMapping[matchup.team1];
+      const opponent = teams.find(t => t.name === opponentName);
+
+      if (!opponent) return team;
+
+      // Calculate scores
+      const teamScore = calculateTeamScore(team);
+      const opponentScore = calculateTeamScore(opponent);
+
+      // Determine if this is a division game (East vs East or West vs West)
+      const eastTeams = ['Hayden', 'Keegan', 'Alex', 'Brody', 'Sean'];
+      const westTeams = ['Aidan', 'Zach', 'Austin', 'Chase', 'Chris'];
+      
+      const teamInEast = eastTeams.includes(team.name);
+      const opponentInEast = eastTeams.includes(opponent.name);
+      const isDivisionGame = (teamInEast && opponentInEast) || (!teamInEast && !opponentInEast);
+
+      // Update record
+      const newRecord = { ...team.record };
+      const newDivisionRecord = { ...team.divisionRecord };
+
+      if (teamScore > opponentScore) {
+        // Win
+        newRecord.wins += 1;
+        if (isDivisionGame) newDivisionRecord.wins += 1;
+      } else if (teamScore < opponentScore) {
+        // Loss
+        newRecord.losses += 1;
+        if (isDivisionGame) newDivisionRecord.losses += 1;
+      }
+      // Tie = no change
+
+      return {
+        ...team,
+        record: newRecord,
+        divisionRecord: newDivisionRecord
+      };
+    });
+
+    setTeams(updatedTeams);
+    setFinalizingWeek(false);
+    alert(`Week ${selectedWeek} records have been updated!`);
+  };
+
+  // Auto-finalize check on page load and when week changes
+  useEffect(() => {
+    if (selectedWeek <= 2 || teams.length === 0) return;
+
+    // Check if it's past Sunday 9pm for this week
+    const weekDates = getWeekDates(selectedWeek);
+    const sundayNight = new Date(weekDates.end);
+    sundayNight.setHours(21, 0, 0, 0); // 9pm on Sunday
+
+    const now = new Date();
+    
+    // Check if we've passed Sunday 9pm and haven't finalized yet
+    if (now > sundayNight) {
+      const storageKey = `week_${selectedWeek}_finalized`;
+      const alreadyFinalized = localStorage.getItem(storageKey);
+      
+      if (!alreadyFinalized) {
+        console.log(`Auto-finalizing Week ${selectedWeek}`);
+        finalizeWeekRecords();
+        localStorage.setItem(storageKey, 'true');
+      }
+    }
+  }, [selectedWeek, teams]);
 
   const deleteTeam = (teamId) => {
     if (!confirm('Are you sure you want to delete this team?')) return;
@@ -1081,7 +1179,19 @@ export default function FantasyBasketball() {
 
         {currentPage === 'matchups' && (
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Weekly Matchups - Week {selectedWeek}</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Weekly Matchups - Week {selectedWeek}</h2>
+              {selectedWeek > 2 && (
+                <button
+                  onClick={finalizeWeekRecords}
+                  disabled={finalizingWeek}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 flex items-center gap-2 transition-colors"
+                >
+                  <Trophy size={20} />
+                  {finalizingWeek ? 'Finalizing...' : 'Finalize Week Records'}
+                </button>
+              )}
+            </div>
             
             {matchupSchedule[selectedWeek] ? (
               <div className="space-y-4">
