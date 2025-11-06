@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Trophy, Plus, Trash2, AlertCircle, RefreshCw, BarChart3 } from 'lucide-react';
+import { Search, Users, Trophy, Plus, Trash2, AlertCircle, RefreshCw, BarChart3, LogIn, X } from 'lucide-react';
 
 export default function FantasyBasketball() {
   const [teams, setTeams] = useState([]);
@@ -16,6 +16,11 @@ export default function FantasyBasketball() {
   const [currentPage, setCurrentPage] = useState('teams'); // 'teams', 'standings', or 'matchups'
   const [finalizingWeek, setFinalizingWeek] = useState(false);
   const [statsLoadedForWeek, setStatsLoadedForWeek] = useState(null); // Track which week stats are loaded for
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   const SEASON_START = new Date('2025-10-20');
   
@@ -766,41 +771,68 @@ export default function FantasyBasketball() {
               <Trophy className="text-orange-600" size={32} />
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Fantasy Basketball</h1>
             </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setCurrentPage('teams'); setViewMode('all'); }}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  currentPage === 'teams' 
-                    ? 'bg-orange-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <Users size={20} />
-                Teams
-              </button>
-              <button
-                onClick={() => setCurrentPage('standings')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  currentPage === 'standings' 
-                    ? 'bg-orange-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <BarChart3 size={20} />
-                Standings
-              </button>
-              <button
-                onClick={() => setCurrentPage('matchups')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  currentPage === 'matchups' 
-                    ? 'bg-orange-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <Trophy size={20} />
-                Matchups
-              </button>
+
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setCurrentPage('teams'); setViewMode('all'); }}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    currentPage === 'teams'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <Users size={20} />
+                  Teams
+                </button>
+                <button
+                  onClick={() => setCurrentPage('standings')}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    currentPage === 'standings'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <BarChart3 size={20} />
+                  Standings
+                </button>
+                <button
+                  onClick={() => setCurrentPage('matchups')}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    currentPage === 'matchups'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <Trophy size={20} />
+                  Matchups
+                </button>
+              </div>
+
+              {isLoggedIn ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    {currentUser}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setIsLoggedIn(false);
+                      setCurrentUser(null);
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 bg-orange-600 text-white hover:bg-orange-700"
+                >
+                  <LogIn size={20} />
+                  Login
+                </button>
+              )}
             </div>
           </div>
 
@@ -1457,6 +1489,84 @@ function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benc
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Login</h2>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  setLoginEmail('');
+                  setLoginPassword('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (loginEmail && loginPassword) {
+                  setIsLoggedIn(true);
+                  setCurrentUser(loginEmail.split('@')[0]);
+                  setShowLoginModal(false);
+                  setLoginEmail('');
+                  setLoginPassword('');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+              >
+                Login
+              </button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <a href="#" className="text-sm text-orange-600 hover:text-orange-700">
+                Forgot password?
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>
