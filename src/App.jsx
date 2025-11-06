@@ -15,6 +15,7 @@ export default function FantasyBasketball() {
   const [viewingTeamId, setViewingTeamId] = useState(null);
   const [currentPage, setCurrentPage] = useState('teams'); // 'teams', 'standings', or 'matchups'
   const [finalizingWeek, setFinalizingWeek] = useState(false);
+  const [statsLoadedForWeek, setStatsLoadedForWeek] = useState(null); // Track which week stats are loaded for
 
   const SEASON_START = new Date('2025-10-20');
   
