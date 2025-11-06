@@ -201,6 +201,15 @@ export default function FantasyBasketball() {
     }
   }, [teams]);
 
+  // NEW: Detect when week changes and show warning if stats are from different week
+  useEffect(() => {
+    if (statsLoadedForWeek !== null && statsLoadedForWeek !== selectedWeek) {
+      setError(`⚠️ Viewing Week ${selectedWeek}, but stats are from Week ${statsLoadedForWeek}. Click "Update Stats" to load current week data.`);
+    } else if (statsLoadedForWeek === selectedWeek) {
+      setError(''); // Clear error when viewing the correct week
+    }
+  }, [selectedWeek, statsLoadedForWeek]);
+
   const fetchPlayer = async (name) => {
     setLoading(true);
     setError('');
@@ -448,6 +457,7 @@ export default function FantasyBasketball() {
     );
     
     setTeams(updatedTeams);
+    setStatsLoadedForWeek(selectedWeek); // NEW: Track which week was just loaded
     setUpdatingStats(false);
   };
 
@@ -847,13 +857,17 @@ export default function FantasyBasketball() {
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
+            <div className={`border px-4 py-3 rounded-lg flex items-center gap-2 mb-4 ${
+              error.includes('⚠️') 
+                ? 'bg-yellow-50 border-yellow-200 text-yellow-800' 
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
               <AlertCircle size={20} />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {currentPage === 'teams' && (
               <button
                 onClick={createTeam}
@@ -873,6 +887,17 @@ export default function FantasyBasketball() {
                 <option key={week} value={week}>Week {week}</option>
               ))}
             </select>
+
+            {/* NEW: Week Stats Indicator */}
+            {statsLoadedForWeek !== null && (
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                statsLoadedForWeek === selectedWeek 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                Stats: Week {statsLoadedForWeek}
+              </span>
+            )}
 
             <button
               onClick={updateAllStats}
