@@ -568,24 +568,23 @@ export default function FantasyBasketball() {
     const flexPositionType = team.flexPositionType || 'G';
     
     let totalScore = 0;
+    let breakdown = []; // For debugging
     
     starters.forEach(starter => {
       // Check if starter played - must have at least ONE non-zero stat
-      // If all stats are 0 (pts, reb, ast, stl, blk all = 0), they didn't play (DNP)
       const starterPlayed = starter.stats && 
                            (starter.stats.pts > 0 || starter.stats.reb > 0 || 
                             starter.stats.ast > 0 || starter.stats.stl > 0 || 
                             starter.stats.blk > 0 || starter.stats.turnover > 0);
       
       if (starterPlayed) {
-        // Starter played, use their score (even if 0 FP from bad game)
-        totalScore += starter.fantasyPoints || 0;
+        const score = starter.fantasyPoints || 0;
+        totalScore += score;
+        breakdown.push(`${starter.name} (${starter.starterSlot}): ${score.toFixed(1)} FP - PLAYED`);
       } else {
-        // Starter didn't play (DNP - all stats are 0), check for alternates based on their SLOT position
         const slot = starter.starterSlot;
         let replacement = null;
         
-        // Determine which alternate ranks to check based on starter slot
         let ranksToCheck = [];
         if (slot === 'G1' || slot === 'G2') {
           ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
@@ -594,7 +593,6 @@ export default function FantasyBasketball() {
         } else if (slot === 'C') {
           ranksToCheck = ['C1', 'C2'];
         } else if (slot === 'FLEX') {
-          // FLEX uses the team's selected position type
           if (flexPositionType === 'G') {
             ranksToCheck = ['G1', 'G2', 'G3', 'G4'];
           } else if (flexPositionType === 'F') {
@@ -604,7 +602,6 @@ export default function FantasyBasketball() {
           }
         }
         
-        // Find the first alternate that played (has any non-zero stat)
         for (const rank of ranksToCheck) {
           const alternate = alternates.find(p => p.alternateRank === rank);
           if (alternate && alternate.stats) {
@@ -619,10 +616,17 @@ export default function FantasyBasketball() {
         }
         
         if (replacement) {
-          totalScore += replacement.fantasyPoints || 0;
+          const score = replacement.fantasyPoints || 0;
+          totalScore += score;
+          breakdown.push(`${starter.name} (${starter.starterSlot}) DNP → ${replacement.name} (${replacement.alternateRank}): ${score.toFixed(1)} FP`);
+        } else {
+          breakdown.push(`${starter.name} (${starter.starterSlot}) DNP → No alternate: 0.0 FP`);
         }
       }
     });
+    
+    console.log(`Team ${team.name} Score Breakdown:`, breakdown);
+    console.log(`Total: ${totalScore.toFixed(1)} FP`);
     
     return totalScore;
   };
