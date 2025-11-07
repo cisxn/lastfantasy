@@ -21,6 +21,9 @@ export default function FantasyBasketball() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [sessionToken, setSessionToken] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const SEASON_START = new Date('2025-10-20');
   
@@ -188,23 +191,171 @@ export default function FantasyBasketball() {
     };
   };
 
-  useEffect(() => {
-    const savedTeams = localStorage.getItem('fantasyTeams');
-    if (savedTeams) {
-      try {
-        setTeams(JSON.parse(savedTeams));
-      } catch (error) {
-        console.error('Error loading teams:', error);
-        setTeams([]);
+  // Authentication functions
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setError('');
+
+    try {
+      const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+          username: loginEmail.split('@')[0]
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
       }
+
+      // Store session token
+      setSessionToken(data.sessionToken);
+      localStorage.setItem('sessionToken', data.sessionToken);
+
+      // Set user info
+      setIsLoggedIn(true);
+      setCurrentUser(data.user.username);
+
+      // Load teams from backend
+      await loadTeamsFromBackend(data.sessionToken);
+
+      // Close modal and reset form
+      setShowLoginModal(false);
+      setLoginEmail('');
+      setLoginPassword('');
+      setIsRegistering(false);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setError(error.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (sessionToken) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${sessionToken}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local state
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setSessionToken(null);
+      localStorage.removeItem('sessionToken');
+      setTeams([]);
+      localStorage.removeItem('fantasyTeams');
+    }
+  };
+
+  const loadTeamsFromBackend = async (token) => {
+    try {
+      const response = await fetch('/api/teams/load', {
+        headers: {
+          'Authorization': `Bearer ${token || sessionToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.teams) {
+        setTeams(data.teams);
+        if (data.teams.length > 0) {
+          localStorage.setItem('fantasyTeams', JSON.stringify(data.teams));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading teams:', error);
+    }
+  };
+
+  const saveTeamsToBackend = async (teamsToSave) => {
+    if (!sessionToken || !isLoggedIn) return;
+
+    try {
+      await fetch('/api/teams/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          teams: teamsToSave,
+        }),
+      });
+    } catch (error) {
+      console.error('Error saving teams:', error);
+    }
+  };
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const savedToken = localStorage.getItem('sessionToken');
+      if (savedToken) {
+        try {
+          const response = await fetch('/api/auth/verify', {
+            headers: {
+              'Authorization': `Bearer ${savedToken}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setSessionToken(savedToken);
+            setIsLoggedIn(true);
+            setCurrentUser(data.user.username);
+            await loadTeamsFromBackend(savedToken);
+          } else {
+            localStorage.removeItem('sessionToken');
+          }
+        } catch (error) {
+          console.error('Session verification error:', error);
+          localStorage.removeItem('sessionToken');
+        }
+      } else {
+        // Fallback to localStorage for teams if not logged in
+        const savedTeams = localStorage.getItem('fantasyTeams');
+        if (savedTeams) {
+          try {
+            setTeams(JSON.parse(savedTeams));
+          } catch (error) {
+            console.error('Error loading teams:', error);
+            setTeams([]);
+          }
+        }
+      }
+    };
+
+    checkSession();
   }, []);
 
   useEffect(() => {
     if (teams.length > 0) {
       localStorage.setItem('fantasyTeams', JSON.stringify(teams));
+      // Also save to backend if logged in
+      if (isLoggedIn && sessionToken) {
+        saveTeamsToBackend(teams);
+      }
     }
-  }, [teams]);
+  }, [teams, isLoggedIn, sessionToken]);
 
   // NEW: Detect when week changes and show warning if stats are from different week
   useEffect(() => {
@@ -815,10 +966,7 @@ export default function FantasyBasketball() {
                     {currentUser}
                   </span>
                   <button
-                    onClick={() => {
-                      setIsLoggedIn(false);
-                      setCurrentUser(null);
-                    }}
+                    onClick={handleLogout}
                     className="px-4 py-2 rounded-lg font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
                   >
                     Logout
@@ -1497,12 +1645,16 @@ function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benc
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Login</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {isRegistering ? 'Register' : 'Login'}
+              </h2>
               <button
                 onClick={() => {
                   setShowLoginModal(false);
                   setLoginEmail('');
                   setLoginPassword('');
+                  setIsRegistering(false);
+                  setError('');
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -1510,19 +1662,13 @@ function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benc
               </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (loginEmail && loginPassword) {
-                  setIsLoggedIn(true);
-                  setCurrentUser(loginEmail.split('@')[0]);
-                  setShowLoginModal(false);
-                  setLoginEmail('');
-                  setLoginPassword('');
-                }
-              }}
-              className="space-y-4"
-            >
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email
@@ -1535,6 +1681,7 @@ function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benc
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder="Enter your email"
                   required
+                  disabled={authLoading}
                 />
               </div>
 
@@ -1548,23 +1695,33 @@ function AlternateSlot({ rank, player, teamId, onRemove, onAlternateChange, benc
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter your password"
+                  placeholder="Enter your password (min 6 characters)"
                   required
+                  minLength={6}
+                  disabled={authLoading}
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={authLoading}
               >
-                Login
+                {authLoading ? 'Please wait...' : (isRegistering ? 'Register' : 'Login')}
               </button>
             </form>
 
             <div className="mt-4 text-center">
-              <a href="#" className="text-sm text-orange-600 hover:text-orange-700">
-                Forgot password?
-              </a>
+              <button
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setError('');
+                }}
+                className="text-sm text-orange-600 hover:text-orange-700"
+                disabled={authLoading}
+              >
+                {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+              </button>
             </div>
           </div>
         </div>
